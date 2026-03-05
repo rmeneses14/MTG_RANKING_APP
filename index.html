@@ -652,12 +652,15 @@ async function doLogin() {
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // Cargamos el perfil explícitamente antes de navegar
-    // para que initDashboard ya tenga S.profile.role disponible
-    await loadProfile(data.user.id);
-    updateNav();
+    // Navegar inmediatamente — no esperamos el perfil para no bloquearnos
+    S.session = data.session;
     toast('Bienvenida ✦', 'ok');
     nav('dashboard');
+    // Cargar perfil en background después de navegar
+    loadProfile(data.user.id).then(() => {
+      updateNav();
+      initDashboard(); // re-init con el rol correcto una vez que llegó
+    });
   } catch(e) {
     toast(e.message || 'Credenciales inválidas', 'err');
   } finally {
