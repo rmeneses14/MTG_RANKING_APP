@@ -315,6 +315,61 @@
     .empty .ei { font-size:2.8rem; margin-bottom:14px; opacity:.45; }
     .empty p { font-size:.875rem; }
 
+    /* ─── CALENDARIO ───────────────────────────────────────── */
+    .cal-view { max-width: 760px; }
+    .cal-day { margin-bottom: 36px; }
+    .cal-day-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+    }
+    .cal-day-pill {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--sage-pale), var(--mist-pale));
+      border: 1px solid var(--sage-light);
+    }
+    .cal-day-pill .wd {
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--sage); font-weight: 500;
+    }
+    .cal-day-pill .dd {
+      font-family: 'Cormorant Garamond', serif; font-size: 1.6rem;
+      font-weight: 400; color: var(--text-dark); line-height: 1;
+    }
+    .cal-day-label { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 400; color: var(--text-dark); }
+    .cal-day-label span { font-size: .8rem; color: var(--text-soft); font-family: 'DM Sans', sans-serif; margin-left: 8px; }
+    .cal-day-divider { flex: 1; height: 1px; background: var(--border-soft); }
+    .cal-slots { display: flex; flex-direction: column; gap: 10px; }
+    .cal-slot {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--card-bg); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.75); border-radius: var(--r-md);
+      padding: 16px 20px; box-shadow: var(--shadow-card);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .cal-slot:hover { transform: translateX(4px); box-shadow: var(--shadow-hover); }
+    .cal-time {
+      display: flex; flex-direction: column; align-items: center;
+      min-width: 52px; flex-shrink: 0;
+    }
+    .cal-time .t-start { font-size: .92rem; font-weight: 500; color: var(--text-dark); }
+    .cal-time .t-end   { font-size: .72rem; color: var(--text-soft); }
+    .cal-color-bar { width: 4px; height: 44px; border-radius: 4px; flex-shrink: 0; }
+    .cal-info { flex: 1; min-width: 0; }
+    .cal-info h4 { font-family: 'Cormorant Garamond', serif; font-size: 1.08rem; font-weight: 400; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-info p  { font-size: .78rem; color: var(--text-soft); }
+    .cal-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+    .cal-spots { font-size: .72rem; padding: 3px 10px; border-radius: var(--r-pill); }
+    .cal-spots.ok   { background: var(--sage-pale); color: #508050; border: 1px solid var(--sage-light); }
+    .cal-spots.full { background: var(--blush-pale); color: #B05050; border: 1px solid var(--blush-light); }
+    .btn-res-sm {
+      padding: 7px 16px; border-radius: var(--r-sm); border: 1px solid var(--sage-light);
+      background: var(--sage-pale); color: var(--sage);
+      font-family: 'DM Sans', sans-serif; font-size: .78rem; font-weight: 500;
+      cursor: pointer; transition: all .2s ease; white-space: nowrap;
+    }
+    .btn-res-sm:hover:not(:disabled) { background: var(--sage); color: #fff; border-color: var(--sage); }
+    .btn-res-sm:disabled { opacity: .5; cursor: not-allowed; }
+
     /* ─── TOAST ─────────────────────────────────────────────── */
     #toast {
       position:fixed; bottom:32px; left:50%;
@@ -430,7 +485,7 @@
         <h2>Próximas clases</h2>
         <p>Encuentra tu práctica y reserva tu lugar</p>
       </div>
-      <div id="classesList" class="classes-grid">
+      <div id="classesList" class="cal-view">
         <div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       </div>
     </div>
@@ -481,7 +536,7 @@
       </div>
       <div id="tp-browse" class="tab-panel">
         <div style="margin-bottom:28px"><h2 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.6rem">Clases disponibles</h2></div>
-        <div id="dashClasses" class="classes-grid"></div>
+        <div id="dashClasses" class="cal-view"></div>
       </div>
       <!-- Admin -->
       <div id="tp-pending" class="tab-panel">
@@ -590,16 +645,30 @@ function updateNav() {
 // ─── API helper (llama al backend FastAPI con el JWT del usuario) ──
 async function api(method, path, body = null) {
   if (!S.session?.access_token) throw new Error('No autenticado');
+
+  // Refrescar sesión si está por vencer
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) S.session = session;
+
   const headers = {
     'Content-Type':  'application/json',
     'Authorization': 'Bearer ' + S.session.access_token
   };
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(API_URL + path, opts);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Error en la solicitud');
-  return data;
+
+  try {
+    const res  = await fetch(API_URL + path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    return data;
+  } catch(e) {
+    // Si Render está dormido (cold start ~30s) mostrar mensaje claro
+    if (e.message.includes('Failed to fetch') || e.name === 'TypeError') {
+      throw new Error('El servidor está despertando, intenta de nuevo en unos segundos ☕');
+    }
+    throw e;
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -737,42 +806,69 @@ function renderClasses(list, targetId) {
     el.innerHTML = '<div class="empty"><div class="ei">🌿</div><p>No hay clases programadas próximamente.</p></div>';
     return;
   }
-  const lvl = { beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado', all_levels:'Todos los niveles' };
-  el.innerHTML = list.map(c => {
-    const start = new Date(c.start_time);
-    const dStr  = start.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
-    const tStr  = start.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
-    const full  = (c.available_spots || 0) <= 0;
-    const color = c.color_hex || '#A8C5A0';
-    const auth  = !!S.session;
-    return `<div class="class-card">
-      <div class="cc-head">
-        <div class="cc-top">
-          <span class="type-badge" style="background:${color}">${c.class_type || 'Clase'}</span>
-          <span class="spots${full ? ' full' : ''}">● ${full ? 'Sin lugares' : c.available_spots + ' lugar' + (c.available_spots !== 1 ? 'es' : '')}</span>
+
+  // Agrupar por día
+  const days = {};
+  const dayKeys = [];
+  list.forEach(c => {
+    const d   = new Date(c.start_time);
+    const key = d.toLocaleDateString('es-AR', { year:'numeric', month:'2-digit', day:'2-digit' });
+    if (!days[key]) { days[key] = { date: d, classes: [] }; dayKeys.push(key); }
+    days[key].classes.push(c);
+  });
+
+  const auth = !!S.session;
+  const wd   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const mes  = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  el.innerHTML = dayKeys.map(key => {
+    const { date, classes } = days[key];
+    const isToday = new Date().toDateString() === date.toDateString();
+    const label   = isToday ? 'Hoy' : date.toLocaleDateString('es-AR', { weekday:'long' });
+
+    const slots = classes.map(c => {
+      const start = new Date(c.start_time);
+      const end   = new Date(c.end_time);
+      const tS    = start.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
+      const tE    = end.toLocaleTimeString('es-AR',   { hour:'2-digit', minute:'2-digit' });
+      const full  = (c.available_spots || 0) <= 0;
+      const color = c.color_hex || '#A8C5A0';
+      const btn   = auth
+        ? `<button class="btn-res-sm" ${full ? 'disabled' : ''} onclick="openModal('${c.id}','${esc(c.title)}','${esc(label)} ${tS}')">
+            ${full ? 'Lleno' : 'Reservar'}
+           </button>`
+        : `<button class="btn-res-sm" onclick="nav('login')">Ingresar</button>`;
+
+      return `<div class="cal-slot">
+        <div class="cal-time">
+          <span class="t-start">${tS}</span>
+          <span class="t-end">${tE}</span>
         </div>
-        <h3>${c.title}</h3>
-        <div class="class-meta">${lvl[c.level] || ''} · ${c.duration_min} min</div>
-      </div>
-      <div class="cc-body">
-        <div class="cc-info">
-          <span class="cc-info-item">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            ${dStr}, ${tStr}
-          </span>
-          <span class="cc-info-item">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            ${c.location || 'Sala Principal'}
-          </span>
-          ${c.instructor_name ? `<span class="cc-info-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${c.instructor_name}</span>` : ''}
+        <div class="cal-color-bar" style="background:${color}"></div>
+        <div class="cal-info">
+          <h4>${c.title}</h4>
+          <p>${c.class_type || ''} · ${c.duration_min} min · ${c.location || 'Sala Principal'}${c.instructor_name ? ' · ' + c.instructor_name : ''}</p>
         </div>
-        ${auth
-          ? `<button class="btn-reserve" ${full ? 'disabled' : ''} onclick="openModal('${c.id}','${esc(c.title)}','${dStr} ${tStr}')">
-              ${full ? 'Sin disponibilidad' : 'Reservar lugar →'}
-            </button>`
-          : `<button class="btn-reserve" onclick="nav('login')">Inicia sesión para reservar</button>`
-        }
+        <div class="cal-right">
+          <span class="cal-spots ${full ? 'full' : 'ok'}">${full ? 'Sin lugares' : c.available_spots + ' lugar' + (c.available_spots !== 1 ? 'es' : '')}</span>
+          ${btn}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="cal-day">
+      <div class="cal-day-header">
+        <div class="cal-day-pill">
+          <span class="wd">${wd[date.getDay()]}</span>
+          <span class="dd">${date.getDate()}</span>
+        </div>
+        <div>
+          <div class="cal-day-label">${label.charAt(0).toUpperCase() + label.slice(1)}<span>${mes[date.getMonth()]} ${date.getFullYear()}</span></div>
+        </div>
+        <div class="cal-day-divider"></div>
+        <span style="font-size:.75rem;color:var(--text-soft);white-space:nowrap">${classes.length} clase${classes.length !== 1 ? 's' : ''}</span>
       </div>
+      <div class="cal-slots">${slots}</div>
     </div>`;
   }).join('');
 }
