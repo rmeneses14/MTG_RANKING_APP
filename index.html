@@ -4,15 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ZenFlow — Estudio de Yoga</title>
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: https:;
-  ">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase SDK cargado como módulo ESM (sin eval) -->
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -546,7 +538,8 @@
 
 <div id="toast"></div>
 
-<script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 // ════════════════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════════════════
@@ -559,7 +552,6 @@ const API_URL       = "https://zenflow-api-r15a.onrender.com"; // ← reemplazar
 // Auth (signUp, signIn, signOut, getSession) va directo a
 // Supabase desde el frontend — sin pasar por el backend.
 // ════════════════════════════════════════════════════════════
-const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─── State ──────────────────────────────────────────────────
@@ -1049,6 +1041,19 @@ async function createClass() {
     updateNav();
   }
 })();
+
+// Exponer funciones al scope global para que los onclick del HTML funcionen
+// (necesario porque este script es type="module" y tiene scope privado)
+window.nav            = nav;
+window.doLogin        = doLogin;
+window.doLogout       = doLogout;
+window.doRegister     = doRegister;
+window.openModal      = openModal;
+window.closeModal     = closeModal;
+window.confirmBooking = confirmBooking;
+window.cancelBooking  = cancelBooking;
+window.reviewBooking  = reviewBooking;
+window.createClass    = createClass;
 </script>
 </body>
 </html>
