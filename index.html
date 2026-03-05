@@ -1289,37 +1289,83 @@
     // ── MANA BASE ────────────────────────────────────────────────────────────
     const landCards = cards.filter(c => {
       const n = c.name.toLowerCase();
+
+      // ── Tierras básicas y nieve ───────────────────────────────────────────
       if (/\b(island|mountain|forest|plains|swamp)\b/.test(n)) return true;
-      const LAND_KW = [
-        // Generic utility
+      if (n.startsWith("snow-covered")) return true;
+
+      // ── Patrones de nombre que SIEMPRE son tierras ────────────────────────
+      // Fetchlands (todas terminan en mesa/strand/heath/tarn/flats/delta/catacombs/mire/foothills)
+      if (/(mesa|strand|heath|tarn|marsh flats|flats|delta|catacombs|mire|foothills)$/.test(n)) return true;
+      // Dual lands originales y shock lands
+      if (/\b(badlands|bayou|plateau|savannah|scrubland|taiga|tropical island|tundra|underground sea|volcanic island)\b/.test(n)) return true;
+      if (/(sacred foundry|stomping ground|breeding pool|watery grave|blood crypt|overgrown tomb|godless shrine|steam vents|hallowed fountain|temple garden)\b/.test(n)) return true;
+      // Check lands
+      if (/(clifftop retreat|isolated chapel|drowned catacomb|sulfur falls|woodland cemetery|glacial fortress|dragonskull summit|rootbound crag|sunpetal grove|hinterland harbor)\b/.test(n)) return true;
+      // Pain lands
+      if (/(adarkar wastes|brushland|karplusan forest|llanowar wastes|caves of koilos|shivan reef|sulfurous springs|underground river|yavimaya coast|battlefield forge|cave of koilos)\b/.test(n)) return true;
+      // Triomes, pathways, surveil lands, verge lands
+      if (/(triome|pathway|\/\/|verge|confluence)/.test(n) && !n.includes("convergence") && !n.includes("mana confluence")) {
+        // verge lands y pathways son tierras; mana confluence se captura abajo
+      }
+      if (/(verge)$/.test(n)) return true;
+      if (/\b(pathway)\b/.test(n)) return true;
+
+      // ── Tierras de utilidad por nombre específico ─────────────────────────
+      const NAMED = [
+        // ABUR duals ya cubiertos arriba
+        // Utility lands muy conocidas
         "command tower","exotic orchard","reflecting pool","city of brass","mana confluence",
-        "pathway","triome","snarl","basilica","refuge","gain land","temple","cairns",
-        "cliffs","summit","ridge","marsh","bog","gorge","knoll","clinic","palace",
-        "foreboding","tainted","shineshadow","geothermal","smoldering","shadowblood",
-        "blackcleave","dragonskull","graven","sulfurous","canyon slough","vault of the",
-        "rogue's passage","unclaimed territory","secluded courtyard","path of ancestry",
-        "bojuka","leechridden","spinerock","evolving wilds","terramorphic",
-        "battlefield forge","clifftop retreat","isolated chapel","godless shrine",
-        "rugged prairie","fire nation palace","shivan gorge","witch's clinic",
-        // Painlands / checklands / filterlands / duals
-        "adarkar wastes","brushland","karplusan forest","llanowar wastes","caves of koilos",
-        "shivan reef","sulfurous springs","underground river","yavimaya coast",
-        "glacial fortress","drowned catacomb","rootbound crag","sunpetal grove",
-        "isolated chapel","dragonskull summit","clifftop retreat","hinterland harbor",
-        "woodland cemetery","sulfur falls","port town","prairie stream","forsaken crossroads",
-        "mystic monastery","nomad outpost","opulent palace","frontier bivouac",
-        // Artifact lands
+        "forbidden orchard","gemstone mine","grand coliseum","pillar of the paruns",
+        "cavern of souls","unclaimed territory","secluded courtyard","path of ancestry",
+        "ancient tomb","urborg, tomb","cabal coffers","gaea's cradle","nykthos",
+        "phyrexian tower","maze of ith","boseiju","otawara","eiganjo","takenuma",
+        "sea of clouds","morphic pool","spire garden","bountiful promenade",
+        "undergrowth stadium","training center","spectator seating","luxury suite",
+        "vault of champions","rejuvenating springs","waterlogged grove","Bocinator",
+        "bojuka bog","rogue's passage","academy ruins","the mycosynth gardens",
+        "karn's bastion","nesting grounds","darksteel citadel","spire of industry",
         "ancient den","seat of the synod","great furnace","vault of whispers",
-        "tree of tales","darksteel citadel","razortide bridge","rustvale bridge",
-        "silverbluff bridge","goldmire bridge","springjack pasture","mistvault bridge",
-        "crystal grotto","spire of industry","mana confluence",
-        // Misc lands
-        "archway of innovation","karn's bastion","nesting grounds","academy ruins",
-        "adarkar wastes","the mycosynth gardens","mystic monastery","port town",
-        "prairie stream","shivan reef","sulfur falls","glacial fortress",
+        "tree of tales","razortide bridge","rustvale bridge","silverbluff bridge",
+        "goldmire bridge","mistvault bridge","crystal grotto",
+        "evolving wilds","terramorphic expanse","fabled passage","prismatic vista",
+        "naya panorama","bant panorama","esper panorama","grixis panorama","jund panorama",
+        "gateway plaza","rupture spire","transguild promenade","arcane sanctum",
+        "crumbling necropolis","jungle shrine","seaside citadel","savage lands",
+        "vivid crag","vivid creek","vivid grove","vivid marsh","vivid meadow",
+        "fire-lit thicket","twilight mire","sunken ruins","mystic gate","wooded bastion",
+        "graven cairns","flooded grove","cascade bluffs",
+        "shadowblood ridge","shivan gorge","shivan reef","sulfurous springs",
+        "blackcleave cliffs","copperline gorge","darkslick shores","razorverge thicket",
+        "lavaclaw reaches","raging ravine","stirring wildwood","celestial colonnade",
+        "creeping tar pit","colonnade","ravine","wildwood","colonnade",
+        "port town","prairie stream","sunken hollow","smoldering marsh","canopy vista",
+        "inspiring vantage","concealed courtyard","spirebluff canal","botanical sanctum",
+        "blooming marsh","choked estuary","foreboding ruins","fortified village",
+        "sheltered thicket","scattered groves","irrigated farmland",
+        "vault of the archangel","vault of champions",
+        "temple of abandon","temple of deceit","temple of enlightenment",
+        "temple of epiphany","temple of malady","temple of malice","temple of mystery",
+        "temple of plenty","temple of silence","temple of triumph",
+        "krosan verge","blighted woodland","blighted fen","blighted cataract",
+        "blighted gorge","blighted steppe",
+        "fetid heath","mystic monastery","nomad outpost","opulent palace",
+        "frontier bivouac","sandsteppe citadel","jungle shrine",
+        // EDHREC/Commander staples adicionales
+        "command beacon","reliquary tower","war room","geier reach sanitarium",
+        "emergence zone","talon gates","mikokoro","minamo","oboro",
+        "hall of the storm giants","hive of the eye tyrant","lair of the hydra",
+        "den of the bugbear","faceless haven","throne of eldraine",
+        "cephalid coliseum","high market","miren, the moaning well",
+        "phyrexian fleshgorger","witchbane orb",
       ];
-      return LAND_KW.some(t => n.includes(t)) ||
-        (n.includes("land") && !n.includes("landfall") && !n.includes("land's edge") && !n.includes("understanding"));
+      if (NAMED.some(kw => n.includes(kw))) return true;
+
+      // ── Fallback: nombre contiene "land" (excluye non-lands con "land" en texto) ──
+      if (n.includes("land") && !n.includes("landfall") && !n.includes("land's edge") &&
+          !n.includes("understanding") && !n.includes("overland") && !n.includes("island")) return true;
+
+      return false;
     });
     const landCount = landCards.reduce((s, c) => s + c.quantity, 0);
 
