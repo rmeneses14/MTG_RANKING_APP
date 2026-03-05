@@ -866,7 +866,11 @@
       "cruel tutor","dark petition","mastermind's acquisition","varragoth","wishclaw talisman"];
     const TUTORS_T3 = ["scheming symmetry","fabricate","tinker","reshape","transmute artifact",
       "trophy mage","trinket mage","ranger of eos","recruiter of the guard",
-      "chord of calling","finale of devastation","diabolic tutor"];
+      "chord of calling","finale of devastation","diabolic tutor",
+      // Tutores de artefactos
+      "whir of invention","inventors' fair","urza's saga","scrap trawler","emry, lurker",
+      "welding jar","scour for scrap","goblin engineer","goblin welder","buried ruin",
+      "academy ruins","glint-nest crane","tribute mage","spellseeker"];
 
     // ── RAMP (fast = turno 1-2, med = artefactos 2 mana, slow = sorceries) ──
     const RAMP_FAST = ["sol ring","mana crypt","arcane signet","mox diamond","chrome mox",
@@ -876,7 +880,12 @@
       "talisman of hierarchy","talisman of indulgence","talisman of dominance","talisman of unity",
       "talisman of conviction","talisman of creativity","talisman of curiosity","talisman of impulse",
       "talisman of resilience","talisman of progress","mind stone","thought vessel","commander's sphere",
-      "wayfarer's bauble","patchwork banner","heraldic banner","worn powerstone"];
+      "wayfarer's bauble","patchwork banner","heraldic banner","worn powerstone",
+      // Artefactos de mana variable / artefact ramp
+      "astral cornucopia","everflowing chalice","pentad prism","thran dynamo","gilded lotus",
+      "basalt monolith","worn powerstone","coalition relic","chromatic lantern","chromatic orrery",
+      "clock of omens","voltaic key","manifold key","unwinding clock","voltaic construct",
+      "energy chamber","coretapper","power conduit"];
     const RAMP_SLOW = ["cultivate","kodama's reach","farseek","rampant growth","three visits",
       "nature's lore","skyshroud claim","explosive vegetation","circuitous route","migration path"];
 
@@ -884,7 +893,13 @@
     const STACK_INTERACTION = ["counterspell","force of will","force of negation","pact of negation",
       "mana drain","swan song","flusterstorm","mental misstep","negate","arcane denial",
       "fierce guardianship","deflecting swat","deadly rollick","cyclonic rift",
-      "rapid hybridization","beast within","chaos warp","silence","orim's chant","rakdos charm"];
+      "rapid hybridization","beast within","chaos warp","silence","orim's chant","rakdos charm",
+      // Más counters y hate
+      "metallic rebuke","mindbreak trap","spell pierce","miscast","dispel","spell snare",
+      "disallow","void shatter","stoic rebuttal","unified will","render silent","absorb",
+      "dovin's veto","mana leak","familiar's ruse","remand","logic knot","exclude",
+      "prohibit","syncopate","dismiss","condescend","thwart","foil","delay","time stop",
+      "grand abolisher","archon of emeria","drannith magistrate","cursed totem"];
 
     // ── REMOCIÓN ────────────────────────────────────────────────────────────
     const REMOVAL_EFFICIENT = ["swords to plowshares","path to exile","fatal push","abrupt decay",
@@ -903,7 +918,11 @@
       "read the bones","brainstorm","ponder","preordain","welcoming vampire",
       "twilight prophet","edric","underworld dreams","spiteful visions","fate unraveler",
       "kederekt parasite","stormfist crusader","theater of horrors","florian, voldaren",
-      "tectonic giant","valgavoth","light up the stage","decree of pain"];
+      "tectonic giant","valgavoth","light up the stage","decree of pain",
+      // Artifact draw / top manipulation
+      "sensei's divining top","scroll rack","top","mystic forge","the reality chip",
+      "insight engine","jhoira, weatherlight","jhoira, ageless","future sight","optical illusion",
+      "brain freeze","inexorable tide","whir of invention","urza's saga"];
     const DRAW_T3 = ["divination","harmonize","mind's eye","staff of nin","howling mine",
       "font of mythos","dusk legion zealot","distant melody","beast whisperer",
       "dead reckoning","phyrexian reclamation"];
@@ -952,7 +971,20 @@
 
     const TOKENS_ENGINE = ["anointed procession","parallel lives","doubling season","cathars' crusade",
       "orah","edgar","charismatic conqueror","mavren fein","bloodline keeper","vampire nocturnus",
-      "captain's claws","skullclamp","skullclamp","intangible virtue"];
+      "captain's claws","skullclamp","intangible virtue"];
+
+    // ── Arquetipo Artefactos / Storm / Affinity ─────────────────────────────────
+    const ARTIFACT_ENGINE = [
+      "isochron scepter","dramatic reversal","clock of omens","voltaic key","manifold key",
+      "unwinding clock","mystic forge","sensei's divining top","the reality chip","emry, lurker",
+      "urza, lord high","urza, prince","jhoira, weatherlight","jhoira, ageless",
+      "etherium sculptor","enthusiastic mechanaut","foundry inspector","cost reducer",
+      "kappa cannoneer","surge conductor","magistrate's scepter","astral cornucopia",
+      "everflowing chalice","pentad prism","coretapper","energy chamber","power conduit",
+      "proliferate","inexorable tide","karn, the great","lattice","mycosynth lattice",
+      "encroaching mycosynth","the millennium calendar","insight engine","whir of invention",
+      "fabricate","tinker","reshape","transmute artifact","brain freeze","aetherflux reservoir"
+    ];
 
     // ── CONTEOS ─────────────────────────────────────────────────────────────
     const t1Tutors = countIn(TUTORS_T1);
@@ -1012,12 +1044,37 @@
     // ── MANA BASE ────────────────────────────────────────────────────────────
     const landCards = cards.filter(c => {
       const n = c.name.toLowerCase();
-      return /\b(island|mountain|forest|plains|swamp)\b/.test(n) ||
-        ["command tower","exotic orchard","reflecting pool","city of brass","mana confluence",
-         "pathway","triome","shock","fetch","filter","pain","check","battle","snarl",
-         "basilica","refuge","gain","temple","bounce","tap","cairns","cliffs","summit",
-         "ridge","marsh","bog","gorge","knoll","clinic","palace"].some(t => n.includes(t)) ||
-        (n.includes("land") && !n.includes("landfall") && !n.includes("land's edge"));
+      if (/\b(island|mountain|forest|plains|swamp)\b/.test(n)) return true;
+      const LAND_KW = [
+        // Generic utility
+        "command tower","exotic orchard","reflecting pool","city of brass","mana confluence",
+        "pathway","triome","snarl","basilica","refuge","gain land","temple","cairns",
+        "cliffs","summit","ridge","marsh","bog","gorge","knoll","clinic","palace",
+        "foreboding","tainted","shineshadow","geothermal","smoldering","shadowblood",
+        "blackcleave","dragonskull","graven","sulfurous","canyon slough","vault of the",
+        "rogue's passage","unclaimed territory","secluded courtyard","path of ancestry",
+        "bojuka","leechridden","spinerock","evolving wilds","terramorphic",
+        "battlefield forge","clifftop retreat","isolated chapel","godless shrine",
+        "rugged prairie","fire nation palace","shivan gorge","witch's clinic",
+        // Painlands / checklands / filterlands / duals
+        "adarkar wastes","brushland","karplusan forest","llanowar wastes","caves of koilos",
+        "shivan reef","sulfurous springs","underground river","yavimaya coast",
+        "glacial fortress","drowned catacomb","rootbound crag","sunpetal grove",
+        "isolated chapel","dragonskull summit","clifftop retreat","hinterland harbor",
+        "woodland cemetery","sulfur falls","port town","prairie stream","forsaken crossroads",
+        "mystic monastery","nomad outpost","opulent palace","frontier bivouac",
+        // Artifact lands
+        "ancient den","seat of the synod","great furnace","vault of whispers",
+        "tree of tales","darksteel citadel","razortide bridge","rustvale bridge",
+        "silverbluff bridge","goldmire bridge","springjack pasture","mistvault bridge",
+        "crystal grotto","spire of industry","mana confluence",
+        // Misc lands
+        "archway of innovation","karn's bastion","nesting grounds","academy ruins",
+        "adarkar wastes","the mycosynth gardens","mystic monastery","port town",
+        "prairie stream","shivan reef","sulfur falls","glacial fortress",
+      ];
+      return LAND_KW.some(t => n.includes(t)) ||
+        (n.includes("land") && !n.includes("landfall") && !n.includes("land's edge") && !n.includes("understanding"));
     });
     const landCount = landCards.reduce((s, c) => s + c.quantity, 0);
 
@@ -1053,20 +1110,22 @@
     const reanimCount     = countIn(REANIMATOR_PIECES);
     const spellslingerCnt = countIn(SPELLSLINGER);
     const tokensCnt       = countIn(TOKENS_ENGINE);
+    const artifactCnt     = countIn(ARTIFACT_ENGINE);
 
     // Score máx por arquetipo: 8 puntos cada uno (calibrado)
     let synergyScore = 0;
     synergyScore += Math.min(tribalCount * 2.0, 8);
     synergyScore += Math.min(aristocratCount * 1.4, 8);
-    synergyScore += Math.min(painCount * 1.3, 8);     // ← Lord of Pain archetype
+    synergyScore += Math.min(painCount * 1.3, 8);
     synergyScore += Math.min(reanimCount * 1.2, 5);
     synergyScore += Math.min(spellslingerCnt * 1.5, 5);
     synergyScore += Math.min(tokensCnt * 1.2, 5);
+    synergyScore += Math.min(artifactCnt * 0.9, 8);  // ← Artifact/Storm archetype
 
-    // Bonus coherencia: múltiples arquetipos funcionando juntos
+    // Bonus coherencia
     const archetypes = [
       tribalCount >= 3, aristocratCount >= 3, painCount >= 4,
-      reanimCount >= 2, spellslingerCnt >= 2, tokensCnt >= 2
+      reanimCount >= 2, spellslingerCnt >= 2, tokensCnt >= 2, artifactCnt >= 5
     ];
     const activeArchetypes = archetypes.filter(Boolean).length;
     if (activeArchetypes >= 2) synergyScore += 5;
@@ -1161,6 +1220,7 @@
       reanimCount >= 2 ? "Reanimador" : null,
       spellslingerCnt >= 2 ? "Spellslinger" : null,
       tokensCnt >= 2 ? "Tokens" : null,
+      artifactCnt >= 5 ? "Artefactos/Storm" : null,
     ].filter(Boolean);
     if (archetypeNames.length > 0)
       reasons.push(`Motor principal: ${archetypeNames.join(" + ")}`);
@@ -1223,12 +1283,20 @@
     hideError();
     document.getElementById("results").style.display = "none";
 
-    let data = null;
+    // ── PASO 1: Análisis local SIEMPRE (scores correctos, instantáneo) ──────
+    let data;
+    try {
+      data = localAnalyze(decklist, commander);
+    } catch (err) {
+      setLoading(false);
+      showError("Error al analizar el deck: " + err.message);
+      return;
+    }
 
-    // Intentar el backend con timeout manual (compatible con todos los browsers)
+    // ── PASO 2: Intentar backend SOLO para precios de mercado ────────────────
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
       const resp = await fetch(API_URL + "/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1236,22 +1304,18 @@
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
-      data = await resp.json();
-    } catch (e) {
-      console.warn("Backend no disponible, usando análisis local:", e.message);
-    }
-
-    // Fallback local si el backend falló o no respondió
-    if (!data) {
-      try {
-        data = localAnalyze(decklist, commander);
-        data._local = true;
-      } catch (err) {
-        setLoading(false);
-        showError("Error al analizar el deck: " + err.message);
-        return;
+      if (resp.ok) {
+        const backendData = await resp.json();
+        // Usar SOLO los precios del backend, mantener todos los scores locales
+        if (backendData.total_market_value_usd != null) {
+          data.total_market_value_usd = backendData.total_market_value_usd;
+          data.top_expensive_cards    = backendData.top_expensive_cards || [];
+          data.card_prices            = backendData.card_prices || {};
+        }
       }
+    } catch (e) {
+      // Backend no disponible — scores ya están calculados, solo sin precios
+      console.info("Backend no disponible para precios:", e.message);
     }
 
     setLoading(false);
