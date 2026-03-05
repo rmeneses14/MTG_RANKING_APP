@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MTG Deck Analyzer — Toph's Forge</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green:       #4a8c3f;
+      --green-bright:#6dbf5e;
+      --green-glow:  #52c447;
+      --green-dim:   #2a5226;
+      --red:         #b83232;
+      --red-bright:  #e84444;
+      --red-glow:    #ff5555;
+      --black:       #0a0a0a;
+      --bg:          #0d0f0c;
+      --bg-card:     #111410;
+      --bg-panel:    #161914;
+      --bg-input:    #0f120e;
+      --metal:       #8a9e7a;
+      --metal-dim:   #4a5642;
+      --border:      #2a3228;
+      --border-green:#3a6e34;
+      --border-red:  #6e2e2e;
+      --text:        #d4e8cc;
+      --text-dim:    #7a9870;
+      --text-bright: #e8f8e0;
+      --gold:        #c8a84a;
+      --gold-dim:    #7a6428;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Runic background texture ─────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 30%, rgba(74,140,63,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 80% at 80% 70%, rgba(184,50,50,0.05) 0%, transparent 70%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 2 L58 16 L58 44 L30 58 L2 44 L2 16Z' fill='none' stroke='%232a3228' stroke-width='0.5' opacity='0.4'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Header ───────────────────────────────────────────────── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 32px 24px 24px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-green);
+      background: linear-gradient(180deg, rgba(15,20,12,0.95) 0%, transparent 100%);
+    }
+
+    .header-rune {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 12px;
+      border: 2px solid var(--green-bright);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: var(--green-bright);
+      box-shadow: 0 0 20px rgba(74,140,63,0.4), inset 0 0 10px rgba(74,140,63,0.1);
+      animation: pulse-rune 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-rune {
+      0%, 100% { box-shadow: 0 0 20px rgba(74,140,63,0.4), inset 0 0 10px rgba(74,140,63,0.1); }
+      50%       { box-shadow: 0 0 35px rgba(109,191,94,0.6), inset 0 0 18px rgba(109,191,94,0.2); }
+    }
+
+    h1 {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: clamp(18px, 4vw, 32px);
+      font-weight: 900;
+      color: var(--green-bright);
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 20px rgba(109,191,94,0.5), 0 2px 4px rgba(0,0,0,0.8);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      color: var(--metal);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    .toph-quote {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-style: italic;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+
+    /* ─── Layout principal ─────────────────────────────────────── */
+    .container {
+      position: relative;
+      z-index: 5;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    /* ─── Section titles ───────────────────────────────────────── */
+    .section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--green-dim);
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      background: var(--green-bright);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ─── Input panel ──────────────────────────────────────────── */
+    .input-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-green);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .input-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green-bright), transparent);
+    }
+
+    .commander-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    input[type="text"], textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      padding: 10px 14px;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px rgba(74,140,63,0.2);
+    }
+
+    textarea {
+      height: 220px;
+      resize: vertical;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .textarea-hint {
+      font-size: 11px;
+      color: var(--metal-dim);
+      margin-top: 4px;
+    }
+
+    /* ─── Analyze button ───────────────────────────────────────── */
+    .btn-analyze {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 24px;
+      margin-top: 16px;
+      background: linear-gradient(135deg, var(--green-dim) 0%, var(--green) 100%);
+      border: 1px solid var(--green-bright);
+      border-radius: 3px;
+      color: var(--text-bright);
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-analyze::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(109,191,94,0) 0%, rgba(109,191,94,0.15) 100%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .btn-analyze:hover::before { opacity: 1; }
+    .btn-analyze:hover {
+      border-color: var(--green-glow);
+      box-shadow: 0 0 16px rgba(109,191,94,0.3);
+      transform: translateY(-1px);
+    }
+    .btn-analyze:active { transform: translateY(0); }
+    .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ─── Loading ──────────────────────────────────────────────── */
+    .loading {
+      text-align: center;
+      padding: 48px 24px;
+      display: none;
+    }
+
+    .forge-spinner {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
+      border: 3px solid var(--border-green);
+      border-top-color: var(--green-bright);
+      border-radius: 50%;
+      animation: forge-spin 0.8s linear infinite;
+      box-shadow: 0 0 16px rgba(74,140,63,0.3);
+    }
+
+    @keyframes forge-spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+    }
+
+    .loading-sub {
+      font-size: 12px;
+      color: var(--metal-dim);
+      margin-top: 6px;
+    }
+
+    /* ─── Error ────────────────────────────────────────────────── */
+    .error-panel {
+      background: rgba(184,50,50,0.08);
+      border: 1px solid var(--border-red);
+      border-radius: 4px;
+      padding: 16px 20px;
+      color: var(--red-bright);
+      font-size: 14px;
+      display: none;
+    }
+
+    /* ─── Results ──────────────────────────────────────────────── */
+    #results { display: none; }
+
+    /* ─── Bracket badge ────────────────────────────────────────── */
+    .bracket-hero {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      align-items: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bracket-hero::after {
+      content: '';
+      position: absolute;
+      right: -20px; top: -20px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(109,191,94,0.06) 0%, transparent 70%);
+    }
+
+    .bracket-badge {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid;
+      font-family: 'Cinzel Decorative', cursive;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .bracket-badge::before {
+      content: 'BRACKET';
+      font-size: 7px;
+      letter-spacing: 0.15em;
+      position: absolute;
+      top: 14px;
+      color: inherit;
+      opacity: 0.7;
+    }
+
+    .bracket-badge .bracket-num {
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1;
+      margin-top: 10px;
+    }
+
+    .b1 { border-color: #5a9e6e; color: #5a9e6e; background: rgba(90,158,110,0.07); }
+    .b2 { border-color: var(--green-bright); color: var(--green-bright); background: rgba(109,191,94,0.08); box-shadow: 0 0 20px rgba(109,191,94,0.2); }
+    .b3 { border-color: var(--gold); color: var(--gold); background: rgba(200,168,74,0.08); box-shadow: 0 0 20px rgba(200,168,74,0.2); }
+    .b4 { border-color: var(--red-bright); color: var(--red-bright); background: rgba(232,68,68,0.08); box-shadow: 0 0 20px rgba(232,68,68,0.2); }
+    .b5 { border-color: #ff2222; color: #ff2222; background: rgba(255,34,34,0.1); box-shadow: 0 0 24px rgba(255,34,34,0.25); }
+
+    .bracket-info h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      color: var(--text-bright);
+      margin-bottom: 6px;
+    }
+
+    .bracket-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .bracket-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 2px;
+      font-size: 11px;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .tag-warn { background: rgba(232,68,68,0.12); border: 1px solid var(--border-red); color: var(--red-bright); }
+    .tag-info { background: rgba(74,140,63,0.12); border: 1px solid var(--border-green); color: var(--green-bright); }
+    .tag-gold { background: rgba(200,168,74,0.1); border: 1px solid var(--gold-dim); color: var(--gold); }
+
+    /* ─── Stats grid ───────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 18px 16px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .stat-card:hover { border-color: var(--border-green); }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .stat-card.power::before   { background: linear-gradient(90deg, var(--red), var(--red-bright)); }
+    .stat-card.consist::before { background: linear-gradient(90deg, var(--green-dim), var(--green-bright)); }
+    .stat-card.resil::before   { background: linear-gradient(90deg, var(--gold-dim), var(--gold)); }
+
+    .stat-label {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .stat-card.power .stat-value   { color: var(--red-bright); }
+    .stat-card.consist .stat-value { color: var(--green-bright); }
+    .stat-card.resil .stat-value   { color: var(--gold); }
+
+    .stat-suffix { font-size: 18px; opacity: 0.6; }
+    .stat-desc {
+      font-size: 12px;
+      color: var(--metal-dim);
+      margin-top: 6px;
+    }
+
+    /* ─── Score bar ────────────────────────────────────────────── */
+    .score-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .score-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+
+    .stat-card.power .score-fill   { background: linear-gradient(90deg, var(--red), var(--red-bright)); }
+    .stat-card.consist .score-fill { background: linear-gradient(90deg, var(--green-dim), var(--green-bright)); }
+    .stat-card.resil .score-fill   { background: linear-gradient(90deg, var(--gold-dim), var(--gold)); }
+
+    /* ─── Breakdown row ────────────────────────────────────────── */
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .breakdown-item {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .breakdown-label {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .breakdown-val {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    /* ─── Market value ─────────────────────────────────────────── */
+    .market-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .market-total {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .market-label {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .market-value {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 16px rgba(200,168,74,0.4);
+    }
+
+    .cards-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .cards-table th {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cards-table td {
+      padding: 8px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(42,50,40,0.5);
+      transition: background 0.15s;
+    }
+
+    .cards-table tr:hover td { background: rgba(74,140,63,0.05); }
+
+    .cards-table .rank { color: var(--metal-dim); font-size: 11px; }
+    .cards-table .card-name { color: var(--text); }
+    .cards-table .card-val { color: var(--gold); font-weight: 600; font-family: 'Rajdhani', sans-serif; }
+
+    /* ─── Reasons list ─────────────────────────────────────────── */
+    .reasons-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .reason-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 14px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .reason-item:last-child { border-bottom: none; }
+
+    .reason-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green-bright);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    /* ─── Commander info ───────────────────────────────────────── */
+    .commander-panel {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-green);
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .commander-icon {
+      width: 44px;
+      height: 44px;
+      border: 2px solid var(--green-bright);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      background: rgba(74,140,63,0.1);
+    }
+
+    .commander-name {
+      font-family: 'Cinzel', serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .commander-label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    /* ─── Combo pieces ─────────────────────────────────────────── */
+    .combo-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .combo-chip {
+      background: rgba(184,50,50,0.1);
+      border: 1px solid var(--border-red);
+      border-radius: 2px;
+      padding: 3px 10px;
+      font-size: 12px;
+      color: var(--red-bright);
+      font-family: 'Rajdhani', sans-serif;
+    }
+
+    /* ─── Footer ───────────────────────────────────────────────── */
+    footer {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+      padding: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--metal-dim);
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.1em;
+    }
+
+    /* ─── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .commander-row { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .bracket-hero { grid-template-columns: 1fr; text-align: center; }
+      .bracket-badge { margin: 0 auto; }
+      .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
+      .market-total { flex-wrap: wrap; }
+    }
+
+    @media (max-width: 480px) {
+      .breakdown-grid { grid-template-columns: 1fr 1fr; }
+      .container { padding: 16px 12px 48px; }
+      h1 { font-size: 18px; }
+      .bracket-badge { width: 68px; height: 68px; }
+      .bracket-badge .bracket-num { font-size: 28px; }
+      textarea { font-size: 14px; min-height: 44px; }
+      input[type="text"] { font-size: 16px; }
+    }
+
+    /* ─── Animations ───────────────────────────────────────────── */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in { animation: fade-up 0.4s ease forwards; }
+    .delay-1    { animation-delay: 0.05s; opacity: 0; }
+    .delay-2    { animation-delay: 0.1s;  opacity: 0; }
+    .delay-3    { animation-delay: 0.15s; opacity: 0; }
+    .delay-4    { animation-delay: 0.2s;  opacity: 0; }
+    .delay-5    { animation-delay: 0.25s; opacity: 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-rune">⬡</div>
+  <h1>Toph's Forge</h1>
+  <div class="subtitle">MTG Commander Deck Analyzer</div>
+  <div class="toph-quote">"La tierra nunca miente. Tu deck tampoco."</div>
+</header>
+
+<div class="container">
+
+  <!-- Input Panel -->
+  <div class="input-panel">
+    <div class="section-title">Forja tu análisis</div>
+
+    <div class="commander-row">
+      <div class="field-group">
+        <label class="field-label">Comandante</label>
+        <input type="text" id="commander-input" placeholder="Toph, the First Metalbender" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Nombre del deck (opcional)</label>
+        <input type="text" id="deck-name-input" placeholder="Iron Fist Control" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Decklist</label>
+      <textarea id="decklist-input" placeholder="1 Sol Ring&#10;1 Arcane Signet&#10;37 Forest&#10;4 Lightning Bolt&#10;&#10;Formato: CANTIDAD Nombre de la carta&#10;(una carta por línea)"></textarea>
+      <div class="textarea-hint">⬡ Formato: "1 Nombre de Carta" por línea. Puedes pegar listas de Moxfield, Archidekt o MTGO.</div>
+    </div>
+
+    <button class="btn-analyze" id="analyze-btn" onclick="analyzeDeck()">
+      ⬡ Forjar Análisis
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="forge-spinner"></div>
+    <div class="loading-text">Forjando en las catacumbas...</div>
+    <div class="loading-sub">Consultando Scryfall · Calculando poder · Determinando bracket</div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-panel" id="error-panel"></div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Commander -->
+    <div class="commander-panel animate-in delay-1" id="commander-display"></div>
+
+    <!-- Bracket -->
+    <div class="bracket-hero animate-in delay-2" id="bracket-display"></div>
+
+    <!-- Score Cards -->
+    <div class="stats-grid animate-in delay-3" id="stats-display"></div>
+
+    <!-- Breakdown -->
+    <div class="animate-in delay-4" id="breakdown-display"></div>
+
+    <!-- Market Value -->
+    <div class="animate-in delay-5" id="market-display"></div>
+
+    <!-- Reasons -->
+    <div id="reasons-display"></div>
+
+  </div>
+</div>
+
+<footer>
+  ⬡ Datos de cartas y precios via Scryfall API &nbsp;·&nbsp; Brackets según Wizards Commander Format Panel Beta 2025
+</footer>
+
+<script>
+  const API_URL = "https://mtg-ranking-api.onrender.com";
+
+  // ─── Demo mode: análisis local si el backend no está disponible ───────────
+  function localAnalyze(decklist, commander) {
+    const lines = decklist.trim().split("\n").filter(l => l.trim() && !l.startsWith("//") && !l.startsWith("#"));
+    const cards = lines.map(l => {
+      const m = l.match(/^(\d+)x?\s+(.+)$/i);
+      return m ? { name: m[2].trim(), quantity: parseInt(m[1]) } : { name: l.trim(), quantity: 1 };
+    });
+
+    const BRACKET5 = ["black lotus","mox sapphire","mox ruby","ancestral recall","time walk","sol ring","mana crypt","demonic tutor","vampiric tutor","thassa's oracle"];
+    const BRACKET4 = ["thassa's oracle","demonic consultation","doomsday","ad nauseam","hermit druid","food chain","kiki-jiki","splinter twin","dramatic reversal","isochron scepter"];
+    const EXTRA_TURNS = ["time warp","temporal manipulation","expropriate","nexus of fate","temporal mastery","temporal trespass"];
+    const LAND_DENY = ["armageddon","ruination","sunder","winter orb","blood moon","back to basics","static orb","devastation"];
+    const TUTORS = ["demonic tutor","vampiric tutor","imperial seal","grim tutor","diabolic tutor","enlightened tutor","mystical tutor","worldly tutor","fabricate","tinker"];
+    const COMBOS = ["basalt monolith","rings of brighthearth","dramatic reversal","isochron scepter","thassa's oracle","demonic consultation","kiki-jiki","splinter twin","food chain","walking ballista","heliod","spike feeder","mikaeus","triskelion","altar of dementia","gravecrawler"];
+    const RAMP = ["sol ring","mana crypt","arcane signet","cultivate","kodama's reach","farseek","rampant growth","three visits","nature's lore","skyshroud claim","exploration","burgeoning","azusa"];
+    const REMOVAL = ["swords to plowshares","path to exile","beast within","cyclonic rift","deadly rollick","fierce guardianship","counterspell","force of will","lightning bolt","fatal push","abrupt decay","assassin's trophy","vindicate","anguished unmaking","generous gift"];
+    const DRAW = ["necropotence","rhystic study","mystic remora","sylvan library","phyrexian arena","esper sentinel","smothering tithe","consecrated sphinx","wheel of fortune","windfall","brainstorm","ponder"];
+
+    const names = cards.map(c => c.name.toLowerCase());
+    const inList = (n, list) => list.some(t => n.includes(t));
+
+    const has5 = names.some(n => inList(n, BRACKET5));
+    const has4 = names.some(n => inList(n, BRACKET4));
+    const hasXT = names.some(n => inList(n, EXTRA_TURNS));
+    const hasLD = names.some(n => inList(n, LAND_DENY));
+    const tutorCount = names.filter(n => inList(n, TUTORS)).length;
+    const comboPieces = names.filter(n => inList(n, COMBOS));
+    const rampCount = names.filter(n => inList(n, RAMP)).length;
+    const removalCount = names.filter(n => inList(n, REMOVAL)).length;
+    const drawCount = names.filter(n => inList(n, DRAW)).length;
+    const totalCards = cards.reduce((s, c) => s + c.quantity, 0);
+    const landCount = cards.filter(c => /island|mountain|forest|plains|swamp|\bland\b/i.test(c.name)).reduce((s,c)=>s+c.quantity,0);
+
+    let bracket = 2;
+    const reasons = [];
+    if (has5 || (hasLD && has4)) { bracket = 5; reasons.push("Contiene cartas de poder extremo o land denial + combos rápidos"); }
+    else if (has4 || (comboPieces.length >= 2 && tutorCount >= 2)) { bracket = 4; reasons.push("Combos rápidos de 2-3 cartas y/o múltiples tutores eficientes"); }
+    else if (comboPieces.length >= 2 || tutorCount >= 2 || hasXT) { bracket = 3; reasons.push("Sinergias optimizadas, combos multi-paso o tutores presentes"); }
+    else { bracket = 2; reasons.push("Deck con sinergias básicas, sin combos claros ni tutores potentes"); }
+    if (hasLD && bracket < 4) { bracket = 4; reasons.push("⚠️ Mass land denial detectada — eleva a Bracket 4"); }
+    if (hasXT) reasons.push("Incluye turnos adicionales (extra turns)");
+
+    const power = Math.min(rampCount*5 + removalCount*4 + drawCount*5 + comboPieces.length*6 + tutorCount*5, 100);
+    const consistency = Math.min(Math.round((rampCount/8*25)+(drawCount/6*30)+(tutorCount/5*25)+(landCount>=35?20:landCount/35*20)), 100);
+    const resilience = Math.min(Math.round((removalCount/8*40)+(drawCount/6*30)+(comboPieces.length>=2?30:comboPieces.length*10)), 100);
+
+    return {
+      commander: commander || "No especificado",
+      bracket, bracket_reasons: reasons,
+      bracket_description: ["","Deck introductorio, ideal para nuevos jugadores.","Deck con sinergias básicas. Juego casual estándar.","Deck optimizado con sinergias poderosas y combos multi-paso.","Deck muy optimizado, combos rápidos y alta presión.","cEDH — máximo nivel competitivo."][bracket],
+      power_score: power, consistency_score: consistency, resilience_score: resilience,
+      ramp_count: rampCount, removal_count: removalCount, draw_count: drawCount,
+      combo_pieces: comboPieces.length, combo_pieces_found: comboPieces.slice(0,8).map(n => n.split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')),
+      tutor_count: tutorCount, land_count: landCount, total_cards: totalCards,
+      has_extra_turns: hasXT, has_land_denial: hasLD,
+      total_market_value_usd: null,
+      top_expensive_cards: [],
+    };
+  }
+
+  async function analyzeDeck() {
+    const decklist = document.getElementById("decklist-input").value.trim();
+    const commander = document.getElementById("commander-input").value.trim();
+
+    if (!decklist) {
+      showError("Por favor ingresa tu decklist.");
+      return;
+    }
+
+    setLoading(true);
+    hideError();
+    document.getElementById("results").style.display = "none";
+
+    let data;
+    try {
+      const resp = await fetch(`${API_URL}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decklist, commander }),
+        signal: AbortSignal.timeout(35000),
+      });
+      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+      data = await resp.json();
+    } catch (e) {
+      // Fallback: análisis local
+      console.warn("Backend no disponible, usando análisis local:", e.message);
+      data = localAnalyze(decklist, commander);
+      data._local = true;
+    }
+
+    setLoading(false);
+    renderResults(data);
+  }
+
+  function renderResults(d) {
+    const results = document.getElementById("results");
+    results.style.display = "block";
+
+    // Commander
+    const cmdPanel = document.getElementById("commander-display");
+    cmdPanel.innerHTML = `
+      <div class="commander-icon">⚔️</div>
+      <div>
+        <div class="commander-label">Comandante</div>
+        <div class="commander-name">${escHtml(d.commander)}${d._local ? ' <span style="font-size:11px;color:var(--metal-dim);">(análisis local)</span>' : ''}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">${d.total_cards} cartas en el deck</div>
+      </div>
+    `;
+
+    // Bracket
+    const bracketPanel = document.getElementById("bracket-display");
+    const bracketClass = `b${d.bracket}`;
+    const bracketName = ["","Introductorio","Casual","Optimizado","Altamente Optimizado","cEDH"][d.bracket];
+    const tags = [];
+    if (d.has_extra_turns) tags.push(`<span class="tag tag-warn">⏱ Extra Turns</span>`);
+    if (d.has_land_denial) tags.push(`<span class="tag tag-warn">🌍 Land Denial</span>`);
+    if (d.combo_pieces > 0) tags.push(`<span class="tag tag-gold">⚡ ${d.combo_pieces} Combo Pieces</span>`);
+    if (d.tutor_count > 0) tags.push(`<span class="tag tag-info">🔍 ${d.tutor_count} Tutores</span>`);
+
+    bracketPanel.innerHTML = `
+      <div class="bracket-badge ${bracketClass}">
+        <span class="bracket-num">${d.bracket}</span>
+      </div>
+      <div class="bracket-info">
+        <h2>Bracket ${d.bracket} — ${bracketName}</h2>
+        <div class="bracket-desc">${d.bracket_description}</div>
+        <div class="bracket-tags">${tags.join('')}</div>
+      </div>
+    `;
+
+    // Stats
+    const statsGrid = document.getElementById("stats-display");
+    statsGrid.innerHTML = `
+      <div class="stat-card power">
+        <div class="stat-label">Poder del Deck</div>
+        <div class="stat-value">${d.power_score}<span class="stat-suffix">/100</span></div>
+        <div class="stat-desc">${powerDesc(d.power_score)}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${d.power_score}%"></div></div>
+      </div>
+      <div class="stat-card consist">
+        <div class="stat-label">Consistencia</div>
+        <div class="stat-value">${d.consistency_score}<span class="stat-suffix">/100</span></div>
+        <div class="stat-desc">${consistDesc(d.consistency_score)}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${d.consistency_score}%"></div></div>
+      </div>
+      <div class="stat-card resil">
+        <div class="stat-label">Resistencia</div>
+        <div class="stat-value">${d.resilience_score}<span class="stat-suffix">/100</span></div>
+        <div class="stat-desc">${resilDesc(d.resilience_score)}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${d.resilience_score}%"></div></div>
+      </div>
+    `;
+
+    // Breakdown
+    const breakdown = document.getElementById("breakdown-display");
+    breakdown.innerHTML = `
+      <div class="section-title">Desglose del Deck</div>
+      <div class="breakdown-grid">
+        <div class="breakdown-item">
+          <div class="breakdown-label">🌿 Ramp</div>
+          <div class="breakdown-val">${d.ramp_count}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">⚔️ Remoción</div>
+          <div class="breakdown-val">${d.removal_count}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">📖 Card Draw</div>
+          <div class="breakdown-val">${d.draw_count}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">💫 Combos</div>
+          <div class="breakdown-val">${d.combo_pieces}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">🔍 Tutores</div>
+          <div class="breakdown-val">${d.tutor_count}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">🏔️ Tierras</div>
+          <div class="breakdown-val">${d.land_count}</div>
+        </div>
+      </div>
+      ${d.combo_pieces_found && d.combo_pieces_found.length > 0 ? `
+        <div class="reasons-panel" style="margin-top:0;margin-bottom:20px;">
+          <div class="section-title">Piezas de Combo Detectadas</div>
+          <div class="combo-list">${d.combo_pieces_found.map(c=>`<span class="combo-chip">${escHtml(c)}</span>`).join('')}</div>
+        </div>
+      ` : ''}
+    `;
+
+    // Market
+    const market = document.getElementById("market-display");
+    if (d.total_market_value_usd !== null && d.total_market_value_usd > 0) {
+      const topCards = d.top_expensive_cards || [];
+      market.innerHTML = `
+        <div class="market-panel">
+          <div class="section-title">Valor de Mercado</div>
+          <div class="market-total">
+            <span class="market-label">Valor estimado:</span>
+            <span class="market-value">$${d.total_market_value_usd.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+            <span style="font-size:13px;color:var(--metal-dim);">USD</span>
+          </div>
+          ${topCards.length > 0 ? `
+            <table class="cards-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Carta</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${topCards.map((c,i)=>`
+                  <tr>
+                    <td class="rank">${i+1}</td>
+                    <td class="card-name">${escHtml(c.name)}</td>
+                    <td class="card-val">$${c.value.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      market.innerHTML = `
+        <div class="market-panel">
+          <div class="section-title">Valor de Mercado</div>
+          <div style="font-size:13px;color:var(--text-dim);padding:8px 0;">
+            💡 Conecta el backend desplegado en Render para obtener precios en tiempo real vía Scryfall.
+          </div>
+        </div>
+      `;
+    }
+
+    // Reasons
+    const reasons = document.getElementById("reasons-display");
+    if (d.bracket_reasons && d.bracket_reasons.length > 0) {
+      reasons.innerHTML = `
+        <div class="reasons-panel animate-in">
+          <div class="section-title">Por qué este Bracket</div>
+          ${d.bracket_reasons.map(r=>`
+            <div class="reason-item">
+              <div class="reason-dot"></div>
+              <span>${escHtml(r)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function powerDesc(s) {
+    if (s >= 85) return "Deck devastador";
+    if (s >= 65) return "Muy amenazante";
+    if (s >= 45) return "Competitivo moderado";
+    if (s >= 25) return "Casual con dientes";
+    return "Deck introductorio";
+  }
+
+  function consistDesc(s) {
+    if (s >= 80) return "Encuentra sus piezas clave";
+    if (s >= 55) return "Relativamente predecible";
+    if (s >= 35) return "Algo variable";
+    return "Dependiente del mazo inicial";
+  }
+
+  function resilDesc(s) {
+    if (s >= 80) return "Cierra partidas con facilidad";
+    if (s >= 55) return "Puede sobrevivir hate";
+    if (s >= 35) return "Vulnerable a disrupción";
+    return "Difícil recuperarse";
+  }
+
+  function setLoading(on) {
+    document.getElementById("loading").style.display = on ? "block" : "none";
+    document.getElementById("analyze-btn").disabled = on;
+    document.getElementById("analyze-btn").textContent = on ? "⬡ Forjando..." : "⬡ Forjar Análisis";
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("error-panel");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  function hideError() {
+    document.getElementById("error-panel").style.display = "none";
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+
+</body>
+</html>
