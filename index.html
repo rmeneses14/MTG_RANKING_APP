@@ -3,2134 +3,1052 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MTG Deck Analyzer — Toph's Forge</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>ZenFlow — Estudio de Yoga</title>
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https:;
+  ">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --green:       #4a8c3f;
-      --green-bright:#6dbf5e;
-      --green-glow:  #52c447;
-      --green-dim:   #2a5226;
-      --red:         #b83232;
-      --red-bright:  #e84444;
-      --red-glow:    #ff5555;
-      --black:       #0a0a0a;
-      --bg:          #0d0f0c;
-      --bg-card:     #111410;
-      --bg-panel:    #161914;
-      --bg-input:    #0f120e;
-      --metal:       #8a9e7a;
-      --metal-dim:   #4a5642;
-      --border:      #2a3228;
-      --border-green:#3a6e34;
-      --border-red:  #6e2e2e;
-      --text:        #d4e8cc;
-      --text-dim:    #7a9870;
-      --text-bright: #e8f8e0;
-      --gold:        #c8a84a;
-      --gold-dim:    #7a6428;
+      --sage:          #A8C5A0;
+      --sage-light:    #C8DEC4;
+      --sage-pale:     #EAF4E8;
+      --mist:          #90B8C8;
+      --mist-light:    #B8D4DC;
+      --mist-pale:     #E8F4F8;
+      --blush:         #D4A8A0;
+      --blush-light:   #EAC8C4;
+      --blush-pale:    #FAF0EE;
+      --sand:          #D8C8A8;
+      --sand-pale:     #FAF4E8;
+      --text-dark:     #3A3530;
+      --text-mid:      #6B645C;
+      --text-soft:     #9B958E;
+      --white:         #FEFDFB;
+      --card-bg:       rgba(255,253,251,0.88);
+      --border-soft:   rgba(168,197,160,0.25);
+      --shadow-card:   0 2px 20px rgba(90,80,70,0.08);
+      --shadow-hover:  0 10px 36px rgba(90,80,70,0.13);
+      --r-lg: 20px; --r-md: 12px; --r-sm: 8px; --r-pill: 50px;
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      color: var(--text-dark);
+      background: var(--white);
       min-height: 100vh;
       overflow-x: hidden;
     }
-
-    /* ─── Runic background texture ─────────────────────────────── */
     body::before {
       content: '';
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 20% 30%, rgba(74,140,63,0.06) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 80% at 80% 70%, rgba(184,50,50,0.05) 0%, transparent 70%),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 2 L58 16 L58 44 L30 58 L2 44 L2 16Z' fill='none' stroke='%232a3228' stroke-width='0.5' opacity='0.4'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ─── Header ───────────────────────────────────────────────── */
-    header {
-      position: relative;
-      z-index: 10;
-      padding: 32px 24px 24px;
-      text-align: center;
-      border-bottom: 1px solid var(--border-green);
-      background: linear-gradient(180deg, rgba(15,20,12,0.95) 0%, transparent 100%);
-    }
-
-    .header-rune {
-      width: 56px;
-      height: 56px;
-      margin: 0 auto 12px;
-      border: 2px solid var(--green-bright);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      color: var(--green-bright);
-      box-shadow: 0 0 20px rgba(74,140,63,0.4), inset 0 0 10px rgba(74,140,63,0.1);
-      animation: pulse-rune 3s ease-in-out infinite;
-    }
-
-    @keyframes pulse-rune {
-      0%, 100% { box-shadow: 0 0 20px rgba(74,140,63,0.4), inset 0 0 10px rgba(74,140,63,0.1); }
-      50%       { box-shadow: 0 0 35px rgba(109,191,94,0.6), inset 0 0 18px rgba(109,191,94,0.2); }
-    }
-
-    h1 {
-      font-family: 'Cinzel Decorative', cursive;
-      font-size: clamp(18px, 4vw, 32px);
-      font-weight: 900;
-      color: var(--green-bright);
-      letter-spacing: 0.06em;
-      text-shadow: 0 0 20px rgba(109,191,94,0.5), 0 2px 4px rgba(0,0,0,0.8);
-      line-height: 1.2;
-    }
-
-    .subtitle {
-      font-family: 'Cinzel', serif;
-      font-size: 13px;
-      color: var(--metal);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      margin-top: 6px;
-    }
-
-    .toph-quote {
-      font-size: 13px;
-      color: var(--text-dim);
-      font-style: italic;
-      margin-top: 10px;
-      opacity: 0.8;
-    }
-
-    /* ─── Layout principal ─────────────────────────────────────── */
-    .container {
-      position: relative;
-      z-index: 5;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 28px 20px 60px;
-    }
-
-    /* ─── Section titles ───────────────────────────────────────── */
-    .section-title {
-      font-family: 'Cinzel', serif;
-      font-size: 11px;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: var(--green-dim);
-      margin-bottom: 12px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section-title::before {
-      content: '';
-      width: 3px;
-      height: 14px;
-      background: var(--green-bright);
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-
-    /* ─── Input panel ──────────────────────────────────────────── */
-    .input-panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border-green);
-      border-radius: 4px;
-      padding: 24px;
-      margin-bottom: 24px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .input-panel::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--green-bright), transparent);
-    }
-
-    .commander-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .field-label {
-      font-family: 'Cinzel', serif;
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-
-    input[type="text"], textarea {
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      color: var(--text);
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 15px;
-      padding: 10px 14px;
-      width: 100%;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
-    }
-
-    input[type="text"]:focus, textarea:focus {
-      border-color: var(--green);
-      box-shadow: 0 0 0 2px rgba(74,140,63,0.2);
-    }
-
-    textarea {
-      height: 220px;
-      resize: vertical;
-      font-size: 13px;
-      line-height: 1.7;
-    }
-
-    .textarea-hint {
-      font-size: 11px;
-      color: var(--metal-dim);
-      margin-top: 4px;
-    }
-
-    /* ─── Analyze button ───────────────────────────────────────── */
-    .btn-analyze {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 14px 24px;
-      margin-top: 16px;
-      background: linear-gradient(135deg, var(--green-dim) 0%, var(--green) 100%);
-      border: 1px solid var(--green-bright);
-      border-radius: 3px;
-      color: var(--text-bright);
-      font-family: 'Cinzel', serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-analyze::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(109,191,94,0) 0%, rgba(109,191,94,0.15) 100%);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .btn-analyze:hover::before { opacity: 1; }
-    .btn-analyze:hover {
-      border-color: var(--green-glow);
-      box-shadow: 0 0 16px rgba(109,191,94,0.3);
-      transform: translateY(-1px);
-    }
-    .btn-analyze:active { transform: translateY(0); }
-    .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-    /* ─── Loading ──────────────────────────────────────────────── */
-    .loading {
-      text-align: center;
-      padding: 48px 24px;
-      display: none;
-    }
-
-    .forge-spinner {
-      width: 56px;
-      height: 56px;
-      margin: 0 auto 20px;
-      border: 3px solid var(--border-green);
-      border-top-color: var(--green-bright);
-      border-radius: 50%;
-      animation: forge-spin 0.8s linear infinite;
-      box-shadow: 0 0 16px rgba(74,140,63,0.3);
-    }
-
-    @keyframes forge-spin { to { transform: rotate(360deg); } }
-
-    .loading-text {
-      font-family: 'Cinzel', serif;
-      font-size: 13px;
-      letter-spacing: 0.2em;
-      color: var(--text-dim);
-    }
-
-    .loading-sub {
-      font-size: 12px;
-      color: var(--metal-dim);
-      margin-top: 6px;
-    }
-
-    /* ─── Error ────────────────────────────────────────────────── */
-    .error-panel {
-      background: rgba(184,50,50,0.08);
-      border: 1px solid var(--border-red);
-      border-radius: 4px;
-      padding: 16px 20px;
-      color: var(--red-bright);
-      font-size: 14px;
-      display: none;
-    }
-
-    /* ─── Results ──────────────────────────────────────────────── */
-    #results { display: none; }
-
-    /* ─── Bracket badge ────────────────────────────────────────── */
-    .bracket-hero {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 20px;
-      align-items: center;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 24px;
-      margin-bottom: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .bracket-hero::after {
-      content: '';
-      position: absolute;
-      right: -20px; top: -20px;
-      width: 120px; height: 120px;
-      background: radial-gradient(circle, rgba(109,191,94,0.06) 0%, transparent 70%);
-    }
-
-    .bracket-badge {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border: 3px solid;
-      font-family: 'Cinzel Decorative', cursive;
-      flex-shrink: 0;
-      position: relative;
-    }
-
-    .bracket-badge::before {
-      content: 'BRACKET';
-      font-size: 7px;
-      letter-spacing: 0.15em;
-      position: absolute;
-      top: 14px;
-      color: inherit;
-      opacity: 0.7;
-    }
-
-    .bracket-badge .bracket-num {
-      font-size: 34px;
-      font-weight: 900;
-      line-height: 1;
-      margin-top: 10px;
-    }
-
-    .b1 { border-color: #5a9e6e; color: #5a9e6e; background: rgba(90,158,110,0.07); }
-    .b2 { border-color: var(--green-bright); color: var(--green-bright); background: rgba(109,191,94,0.08); box-shadow: 0 0 20px rgba(109,191,94,0.2); }
-    .b3 { border-color: var(--gold); color: var(--gold); background: rgba(200,168,74,0.08); box-shadow: 0 0 20px rgba(200,168,74,0.2); }
-    .b4 { border-color: var(--red-bright); color: var(--red-bright); background: rgba(232,68,68,0.08); box-shadow: 0 0 20px rgba(232,68,68,0.2); }
-    .b5 { border-color: #ff2222; color: #ff2222; background: rgba(255,34,34,0.1); box-shadow: 0 0 24px rgba(255,34,34,0.25); }
-
-    .bracket-info h2 {
-      font-family: 'Cinzel', serif;
-      font-size: 18px;
-      color: var(--text-bright);
-      margin-bottom: 6px;
-    }
-
-    .bracket-desc {
-      font-size: 14px;
-      color: var(--text-dim);
-      line-height: 1.5;
-      margin-bottom: 10px;
-    }
-
-    .bracket-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 10px;
-      border-radius: 2px;
-      font-size: 11px;
-      font-family: 'Cinzel', serif;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    .tag-warn { background: rgba(232,68,68,0.12); border: 1px solid var(--border-red); color: var(--red-bright); }
-    .tag-info { background: rgba(74,140,63,0.12); border: 1px solid var(--border-green); color: var(--green-bright); }
-    .tag-gold { background: rgba(200,168,74,0.1); border: 1px solid var(--gold-dim); color: var(--gold); }
-
-    /* ─── Stats grid ───────────────────────────────────────────── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 18px 16px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.2s;
-    }
-
-    .stat-card:hover { border-color: var(--border-green); }
-
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-    }
-
-    .stat-card.power::before   { background: linear-gradient(90deg, var(--red), var(--red-bright)); }
-    .stat-card.consist::before { background: linear-gradient(90deg, var(--green-dim), var(--green-bright)); }
-    .stat-card.resil::before   { background: linear-gradient(90deg, var(--gold-dim), var(--gold)); }
-    .stat-card.synergy::before { background: linear-gradient(90deg, #7c3aed, #a855f7); }
-
-    .stat-label {
-      font-family: 'Cinzel', serif;
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 8px;
-    }
-
-    .stat-value {
-      font-family: 'Cinzel Decorative', cursive;
-      font-size: 36px;
-      font-weight: 900;
-      line-height: 1;
-    }
-
-    .stat-card.power .stat-value   { color: var(--red-bright); }
-    .stat-card.consist .stat-value { color: var(--green-bright); }
-    .stat-card.resil .stat-value   { color: var(--gold); }
-    .stat-card.synergy .stat-value { color: #a855f7; }
-
-    .stat-suffix { font-size: 18px; opacity: 0.6; }
-    .stat-desc {
-      font-size: 12px;
-      color: var(--metal-dim);
-      margin-top: 6px;
-    }
-
-    /* ─── Score bar ────────────────────────────────────────────── */
-    .score-bar {
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      margin-top: 10px;
-      overflow: hidden;
-    }
-
-    .score-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 1s ease;
-    }
-
-    .stat-card.power .score-fill   { background: linear-gradient(90deg, var(--red), var(--red-bright)); }
-    .stat-card.consist .score-fill { background: linear-gradient(90deg, var(--green-dim), var(--green-bright)); }
-    .stat-card.resil .score-fill   { background: linear-gradient(90deg, var(--gold-dim), var(--gold)); }
-    .stat-card.synergy .score-fill { background: linear-gradient(90deg, #7c3aed, #a855f7); }
-
-    /* ─── Breakdown row ────────────────────────────────────────── */
-    .breakdown-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .breakdown-item {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .breakdown-label {
-      font-family: 'Cinzel', serif;
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-
-    .breakdown-val {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text-bright);
-    }
-
-    /* ─── Market value ─────────────────────────────────────────── */
-    .market-panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-
-    .market-total {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .market-label {
-      font-family: 'Cinzel', serif;
-      font-size: 12px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-
-    .market-value {
-      font-family: 'Cinzel Decorative', cursive;
-      font-size: 32px;
-      font-weight: 900;
-      color: var(--gold);
-      text-shadow: 0 0 16px rgba(200,168,74,0.4);
-    }
-
-    .cards-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .cards-table th {
-      font-family: 'Cinzel', serif;
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      text-align: left;
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .cards-table td {
-      padding: 8px 12px;
-      font-size: 13px;
-      border-bottom: 1px solid rgba(42,50,40,0.5);
-      transition: background 0.15s;
-    }
-
-    .cards-table tr:hover td { background: rgba(74,140,63,0.05); }
-
-    .cards-table .rank { color: var(--metal-dim); font-size: 11px; }
-    .cards-table .card-name { color: var(--text); }
-    .cards-table .card-val { color: var(--gold); font-weight: 600; font-family: 'Rajdhani', sans-serif; }
-
-    /* ─── Reasons list ─────────────────────────────────────────── */
-    .reasons-panel {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
-    }
-
-    .reason-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 8px 0;
-      font-size: 14px;
-      color: var(--text-dim);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .reason-item:last-child { border-bottom: none; }
-
-    .reason-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green-bright);
-      flex-shrink: 0;
-      margin-top: 6px;
-    }
-
-    /* ─── Commander info ───────────────────────────────────────── */
-    .commander-panel {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-green);
-      border-radius: 4px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
-    }
-
-    .commander-icon {
-      width: 44px;
-      height: 44px;
-      border: 2px solid var(--green-bright);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      flex-shrink: 0;
-      background: rgba(74,140,63,0.1);
-    }
-
-    .commander-name {
-      font-family: 'Cinzel', serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-bright);
-    }
-
-    .commander-label {
-      font-size: 11px;
-      letter-spacing: 0.15em;
-      color: var(--text-dim);
-      text-transform: uppercase;
-    }
-
-    /* ─── Combo pieces ─────────────────────────────────────────── */
-    .combo-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    /* ─── EDHREC Synergy Panel ──────────────────────────────────────────── */
-    .edhrec-panel {
-      background: linear-gradient(135deg, #0e1a1f 0%, #0a1520 100%);
-      border: 1px solid #1a3a4a;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 20px;
-    }
-    .edhrec-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .edhrec-logo {
-      font-family: 'Cinzel', serif;
-      font-size: 11px;
-      letter-spacing: 0.15em;
-      color: #3a9fd8;
-      text-transform: uppercase;
-      border: 1px solid #1a4a6a;
-      padding: 3px 10px;
-      border-radius: 4px;
-    }
-    .edhrec-score-wrap {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-    }
-    .edhrec-score {
-      font-family: 'Cinzel', serif;
-      font-size: 42px;
-      font-weight: 700;
-      line-height: 1;
-    }
-    .edhrec-score.high   { color: #4fc87a; text-shadow: 0 0 20px rgba(79,200,122,0.4); }
-    .edhrec-score.mid    { color: #c8a84a; text-shadow: 0 0 20px rgba(200,168,74,0.4); }
-    .edhrec-score.low    { color: #e05555; text-shadow: 0 0 20px rgba(224,85,85,0.3); }
-    .edhrec-score-suffix { font-size: 16px; color: var(--text-dim); }
-    .edhrec-meta {
-      font-size: 12px;
-      color: var(--text-dim);
-      line-height: 1.8;
-    }
-    .edhrec-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin: 12px 0;
-    }
-    .edhrec-tag {
-      font-size: 11px;
-      font-family: 'Cinzel', serif;
-      letter-spacing: 0.08em;
-      padding: 3px 10px;
-      border-radius: 20px;
-      background: rgba(58,159,216,0.12);
-      border: 1px solid rgba(58,159,216,0.3);
-      color: #3a9fd8;
-    }
-    .edhrec-cols {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-    @media (max-width: 640px) { .edhrec-cols { grid-template-columns: 1fr; } }
-    .edhrec-col-title {
-      font-size: 11px;
-      font-family: 'Cinzel', serif;
-      letter-spacing: 0.12em;
-      color: var(--text-dim);
-      margin-bottom: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--border);
-    }
-    .edhrec-card-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-size: 13px;
-    }
-    .edhrec-card-row:last-child { border-bottom: none; }
-    .edhrec-card-name { color: var(--text); }
-    .edhrec-synergy-badge {
-      font-size: 11px;
-      padding: 2px 7px;
-      border-radius: 10px;
-      font-weight: 600;
-    }
-    .syn-high { background: rgba(79,200,122,0.15); color: #4fc87a; border: 1px solid rgba(79,200,122,0.3); }
-    .syn-mid  { background: rgba(200,168,74,0.15);  color: #c8a84a; border: 1px solid rgba(200,168,74,0.3); }
-    .syn-low  { background: rgba(255,255,255,0.06); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.1); }
-    .edhrec-coverage {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 14px 0 6px;
-    }
-    .edhrec-coverage-bar {
-      flex: 1;
-      height: 6px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .edhrec-coverage-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #1a6a9a, #3a9fd8);
-      border-radius: 3px;
-      transition: width 1s ease;
-    }
-    .edhrec-coverage-label {
-      font-size: 12px;
-      color: #3a9fd8;
-      white-space: nowrap;
-    }
-    .edhrec-loading {
-      text-align: center;
-      padding: 20px;
-      color: var(--text-dim);
-      font-size: 13px;
-    }
-    .edhrec-error {
-      color: var(--text-dim);
-      font-size: 13px;
-      padding: 12px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    /* ─── Tier Panel ─────────────────────────────────────────────────────── */
-    .tier-panel {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      align-items: center;
-      gap: 20px;
-      background: linear-gradient(135deg, #0d1a12 0%, #0a1510 100%);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 20px;
-    }
-    .tier-badge {
-      width: 72px;
-      height: 72px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Cinzel', serif;
-      font-size: 36px;
-      font-weight: 900;
-      flex-shrink: 0;
-      position: relative;
-      border: 2px solid currentColor;
-    }
-    .tier-badge::after {
-      content: '';
-      position: absolute;
-      inset: -4px;
-      border-radius: 17px;
-      border: 1px solid currentColor;
-      opacity: 0.3;
-    }
-    .tier-info { min-width: 0; }
-    .tier-name {
-      font-family: 'Cinzel', serif;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      margin-bottom: 4px;
-    }
-    .tier-desc {
-      font-size: 13px;
-      color: var(--text-dim);
-      line-height: 1.5;
-    }
-    /* Zona derecha: score + barras en grid 2 cols */
-    .tier-right {
-      display: grid;
-      grid-template-columns: 72px 1fr;
-      align-items: center;
-      gap: 16px;
-      border-left: 1px solid var(--border);
-      padding-left: 20px;
-    }
-    .tier-composite {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-    }
-    .tier-composite-val {
-      font-family: 'Cinzel', serif;
-      font-size: 28px;
-      font-weight: 700;
-      line-height: 1;
-      color: var(--text-bright);
-    }
-    .tier-composite-label {
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      font-family: 'Cinzel', serif;
-      text-align: center;
-      line-height: 1.4;
-    }
-    .tier-bars {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px 16px;
-    }
-    .tier-bar-row { display: flex; align-items: center; gap: 6px; }
-    .tier-bar-label { font-size: 10px; color: var(--text-dim); width: 68px; flex-shrink: 0; }
-    .tier-bar-track {
-      flex: 1;
-      height: 4px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .tier-bar-fill { height: 100%; border-radius: 2px; }
-    .tier-bar-val { font-size: 10px; color: var(--text); width: 24px; text-align: right; flex-shrink: 0; }
-    /* Responsive: tier-panel en móvil */
-    @media (max-width: 640px) {
-      .tier-panel { grid-template-columns: auto 1fr; grid-template-rows: auto auto; }
-      .tier-right { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 14px; }
-    }
-
-    .combo-chip {
-      background: rgba(184,50,50,0.1);
-      border: 1px solid var(--border-red);
-      border-radius: 2px;
-      padding: 3px 10px;
-      font-size: 12px;
-      color: var(--red-bright);
-      font-family: 'Rajdhani', sans-serif;
-    }
-
-    /* ─── Footer ───────────────────────────────────────────────── */
-    footer {
-      position: relative;
-      z-index: 5;
-      text-align: center;
-      padding: 20px;
-      border-top: 1px solid var(--border);
-      font-size: 12px;
-      color: var(--metal-dim);
-      font-family: 'Cinzel', serif;
-      letter-spacing: 0.1em;
-    }
-
-    /* ─── Responsive ───────────────────────────────────────────── */
+        radial-gradient(ellipse 80% 55% at 5%  15%, rgba(168,197,160,0.16) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 95% 10%, rgba(144,184,200,0.18) 0%, transparent 65%),
+        radial-gradient(ellipse 70% 55% at 50% 95%, rgba(212,168,160,0.12) 0%, transparent 65%);
+    }
+
+    /* ─── NAV ──────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 200;
+      height: 70px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 52px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      background: rgba(254,253,251,0.86);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.55rem; font-weight: 400; color: var(--text-dark);
+      letter-spacing: 0.02em;
+    }
+    #navGuest { display: flex; align-items: center; gap: 6px; }
+    #navAuth  { display: none; align-items: center; gap: 10px; }
+    .btn-nav {
+      padding: 8px 20px; border-radius: var(--r-pill); border: none;
+      font-family: 'DM Sans', sans-serif; font-size: 0.84rem; cursor: pointer;
+      transition: all 0.22s ease; letter-spacing: 0.02em;
+    }
+    .btn-nav.ghost   { background: transparent; color: var(--text-mid); }
+    .btn-nav.ghost:hover { background: var(--sage-pale); color: var(--text-dark); }
+    .btn-nav.primary { background: var(--sage); color: #fff; }
+    .btn-nav.primary:hover { background: #92B88A; box-shadow: 0 4px 14px rgba(168,197,160,.4); transform: translateY(-1px); }
+    .btn-nav.outline { background: transparent; color: var(--text-mid); border: 1.5px solid var(--border-soft); }
+    .btn-nav.outline:hover { border-color: var(--sage); color: var(--text-dark); }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--sage-light), var(--mist-light));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 500; font-size: 0.82rem; color: var(--text-dark); flex-shrink: 0;
+    }
+    #navName { font-size: 0.84rem; color: var(--text-mid); }
+
+    /* ─── PAGES ─────────────────────────────────────────────── */
+    #app > .page { display: none; }
+    #app > .page.active { display: block; }
+
+    /* ─── HOME ──────────────────────────────────────────────── */
+    .hero {
+      min-height: calc(100vh - 70px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 80px 24px;
+      position: relative; overflow: hidden;
+    }
+    .hero-deco {
+      position: absolute; border-radius: 50%; pointer-events: none;
+      animation: floatDeco 8s ease-in-out infinite;
+    }
+    .hero-deco-1 { width:520px;height:520px; background:radial-gradient(circle,rgba(168,197,160,.13) 0%,transparent 70%); top:-120px;right:-100px; }
+    .hero-deco-2 { width:420px;height:420px; background:radial-gradient(circle,rgba(144,184,200,.15) 0%,transparent 70%); bottom:-80px;left:-100px; animation-delay:-4s; }
+    @keyframes floatDeco { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-20px) scale(1.03)} }
+    .hero-content { max-width: 700px; position: relative; animation: fadeUp .9s ease both; }
+    .hero-tag {
+      display: inline-block; margin-bottom: 28px;
+      padding: 6px 18px; border-radius: var(--r-pill);
+      background: var(--sage-pale); border: 1px solid var(--sage-light);
+      font-size: 0.76rem; letter-spacing: .14em; text-transform: uppercase; color: var(--sage);
+    }
+    .hero h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.8rem, 7.5vw, 5.2rem);
+      font-weight: 300; line-height: 1.08;
+      color: var(--text-dark); margin-bottom: 26px;
+    }
+    .hero h1 em { font-style: italic; color: var(--sage); }
+    .hero p { font-size: 1.05rem; color: var(--text-mid); line-height: 1.75; margin-bottom: 48px; }
+    .cta-group { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-cta {
+      padding: 14px 38px; border-radius: var(--r-pill); border: none;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer;
+      letter-spacing: .03em; transition: all .3s ease;
+    }
+    .btn-cta.primary { background: linear-gradient(135deg, var(--sage), var(--mist)); color: #fff; box-shadow: 0 4px 22px rgba(168,197,160,.35); }
+    .btn-cta.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(168,197,160,.45); }
+    .btn-cta.outline { background: transparent; color: var(--text-mid); border: 1.5px solid rgba(168,197,160,.45); }
+    .btn-cta.outline:hover { background: var(--sage-pale); border-color: var(--sage); color: var(--text-dark); }
+
+    .features { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; padding: 0 52px 80px; max-width: 1100px; margin: 0 auto; }
+    .feat-card {
+      background: var(--card-bg); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.7); border-radius: var(--r-lg);
+      padding: 36px 28px; text-align: center; box-shadow: var(--shadow-card);
+      transition: transform .3s ease;
+    }
+    .feat-card:hover { transform: translateY(-4px); }
+    .feat-icon { width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 20px; }
+    .feat-icon.g { background:var(--sage-pale); }
+    .feat-icon.b { background:var(--mist-pale); }
+    .feat-icon.p { background:var(--blush-pale); }
+    .feat-card h3 { font-family:'Cormorant Garamond',serif; font-size:1.25rem; font-weight:400; margin-bottom:10px; }
+    .feat-card p  { font-size:.875rem; color:var(--text-soft); line-height:1.65; }
+
+    /* ─── AUTH ──────────────────────────────────────────────── */
+    .auth-wrap { min-height: calc(100vh - 70px); display:flex; align-items:center; justify-content:center; padding:48px 20px; }
+    .auth-card {
+      background: var(--card-bg); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.8); border-radius: var(--r-lg);
+      padding: 48px 44px; width: 100%; max-width: 420px;
+      box-shadow: 0 8px 40px rgba(90,80,70,.1); animation: fadeUp .5s ease both;
+    }
+    .auth-card h2 { font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:300; margin-bottom:6px; }
+    .auth-card .sub { color:var(--text-soft); font-size:.875rem; margin-bottom:32px; }
+    .fgroup { margin-bottom: 18px; }
+    .fgroup label { display:block; font-size:.76rem; letter-spacing:.07em; text-transform:uppercase; color:var(--text-soft); margin-bottom:7px; }
+    .fgroup input, .fgroup select, .fgroup textarea {
+      width:100%; padding:12px 16px;
+      background:rgba(255,255,255,.6); border:1px solid rgba(168,197,160,.3);
+      border-radius:var(--r-sm); font-family:'DM Sans',sans-serif; font-size:.9rem;
+      color:var(--text-dark); outline:none; transition:border-color .2s ease;
+    }
+    .fgroup input:focus, .fgroup select:focus, .fgroup textarea:focus { border-color:var(--sage); background:white; }
+    .fgroup textarea { resize:vertical; min-height:80px; }
+    .frow { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .btn-submit {
+      width:100%; padding:14px; border-radius:var(--r-md); border:none;
+      background:linear-gradient(135deg,var(--sage),var(--mist));
+      color:#fff; font-family:'DM Sans',sans-serif; font-size:.9rem;
+      cursor:pointer; letter-spacing:.03em; transition:all .3s ease; margin-top:6px;
+    }
+    .btn-submit:hover { opacity:.9; transform:translateY(-1px); }
+    .btn-submit:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+    .auth-switch { text-align:center; margin-top:22px; font-size:.84rem; color:var(--text-soft); }
+    .auth-switch a { color:var(--sage); cursor:pointer; font-weight:500; }
+    .auth-switch a:hover { text-decoration:underline; }
+
+    /* ─── SECTION ────────────────────────────────────────────── */
+    .section { padding:64px 52px; max-width:1100px; margin:0 auto; }
+    .section-hd { text-align:center; margin-bottom:48px; }
+    .section-hd h2 { font-family:'Cormorant Garamond',serif; font-size:clamp(1.8rem,4vw,2.8rem); font-weight:300; margin-bottom:10px; }
+    .section-hd p  { color:var(--text-soft); font-size:.9rem; }
+    .classes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; }
+
+    /* ─── CLASS CARD ─────────────────────────────────────────── */
+    .class-card {
+      background:var(--card-bg); backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.75); border-radius:var(--r-lg);
+      overflow:hidden; box-shadow:var(--shadow-card);
+      transition:transform .3s ease, box-shadow .3s ease;
+    }
+    .class-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-hover); }
+    .cc-head { padding:20px 24px 14px; border-bottom:1px solid rgba(255,255,255,.5); }
+    .cc-top  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+    .type-badge { padding:4px 12px; border-radius:var(--r-pill); font-size:.7rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:#fff; }
+    .spots { font-size:.76rem; color:var(--text-soft); }
+    .spots.full { color:var(--blush); }
+    .class-card h3 { font-family:'Cormorant Garamond',serif; font-size:1.18rem; font-weight:400; margin-bottom:3px; }
+    .class-meta { font-size:.78rem; color:var(--text-soft); }
+    .cc-body { padding:16px 24px 20px; }
+    .cc-info { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:16px; }
+    .cc-info-item { display:flex; align-items:center; gap:5px; font-size:.8rem; color:var(--text-mid); }
+    .btn-reserve {
+      width:100%; padding:11px; border-radius:var(--r-md); border:1px solid var(--sage-light);
+      background:linear-gradient(135deg,var(--sage-pale),var(--mist-pale));
+      color:var(--sage); font-family:'DM Sans',sans-serif; font-size:.875rem; font-weight:500;
+      cursor:pointer; letter-spacing:.02em; transition:all .25s ease;
+    }
+    .btn-reserve:hover:not(:disabled) { background:linear-gradient(135deg,var(--sage),var(--mist)); color:#fff; border-color:transparent; }
+    .btn-reserve:disabled { opacity:.5; cursor:not-allowed; }
+
+    /* ─── DASHBOARD ─────────────────────────────────────────── */
+    .dash-header {
+      background:linear-gradient(135deg,var(--sage-pale),var(--mist-pale) 55%,var(--blush-pale));
+      border-bottom:1px solid rgba(255,255,255,.6); padding:40px 52px;
+    }
+    .dash-header h1 { font-family:'Cormorant Garamond',serif; font-size:1.9rem; font-weight:300; margin-bottom:4px; }
+    .dash-header p  { color:var(--text-soft); font-size:.875rem; }
+    .dash-tabs {
+      display:flex; gap:4px; padding:14px 52px;
+      border-bottom:1px solid rgba(168,197,160,.18);
+      background:rgba(254,253,251,.85); backdrop-filter:blur(12px);
+      position:sticky; top:70px; z-index:100; overflow-x:auto;
+    }
+    .tab {
+      padding:8px 22px; border-radius:var(--r-pill); border:none;
+      background:transparent; font-family:'DM Sans',sans-serif; font-size:.82rem;
+      color:var(--text-soft); cursor:pointer; white-space:nowrap; transition:all .2s ease;
+    }
+    .tab:hover  { background:var(--sage-pale); color:var(--text-dark); }
+    .tab.active { background:var(--sage); color:#fff; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ─── BOOKING LIST ──────────────────────────────────────── */
+    .blist { display:flex; flex-direction:column; gap:12px; }
+    .b-item {
+      background:var(--card-bg); border:1px solid rgba(255,255,255,.75);
+      border-radius:var(--r-md); padding:20px 24px;
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      box-shadow:var(--shadow-card); transition:transform .2s ease;
+    }
+    .b-item:hover { transform:translateX(4px); }
+    .b-info h4 { font-family:'Cormorant Garamond',serif; font-size:1.08rem; font-weight:400; margin-bottom:4px; }
+    .b-info p  { font-size:.8rem; color:var(--text-soft); }
+    .b-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+    .status {
+      padding:5px 14px; border-radius:var(--r-pill); font-size:.73rem; font-weight:500;
+      letter-spacing:.04em; white-space:nowrap;
+    }
+    .status.pending   { background:var(--sand-pale);  color:#B08030; border:1px solid #E0C880; }
+    .status.approved  { background:var(--sage-pale);  color:#508050; border:1px solid var(--sage-light); }
+    .status.rejected  { background:var(--blush-pale); color:#B05050; border:1px solid var(--blush-light); }
+    .status.cancelled { background:#F2F2F0; color:#909090; border:1px solid #D8D8D8; }
+    .btn-cancel-link { font-size:.74rem; color:var(--text-soft); background:none; border:none; cursor:pointer; text-decoration:underline; }
+
+    /* ─── ADMIN ─────────────────────────────────────────────── */
+    .pending-card {
+      background:var(--card-bg); border:1px solid rgba(255,255,255,.75);
+      border-radius:var(--r-md); padding:24px; box-shadow:var(--shadow-card); margin-bottom:12px;
+    }
+    .pending-card h4 { font-family:'Cormorant Garamond',serif; font-size:1.12rem; font-weight:400; margin-bottom:6px; }
+    .pending-card h4 span { color:var(--sage); }
+    .pending-meta { font-size:.8rem; color:var(--text-soft); margin-bottom:16px; line-height:1.7; }
+    .pending-actions { display:flex; gap:10px; }
+    .btn-approve {
+      padding:9px 22px; border-radius:var(--r-sm);
+      border:1px solid var(--sage-light); background:var(--sage-pale); color:#508050;
+      font-family:'DM Sans',sans-serif; font-size:.82rem; font-weight:500;
+      cursor:pointer; transition:all .2s ease;
+    }
+    .btn-approve:hover { background:var(--sage); color:#fff; border-color:var(--sage); }
+    .btn-reject {
+      padding:9px 22px; border-radius:var(--r-sm);
+      border:1px solid var(--blush-light); background:var(--blush-pale); color:#B05050;
+      font-family:'DM Sans',sans-serif; font-size:.82rem; font-weight:500;
+      cursor:pointer; transition:all .2s ease;
+    }
+    .btn-reject:hover { background:var(--blush); color:#fff; border-color:var(--blush); }
+
+    .form-card {
+      background:var(--card-bg); border:1px solid rgba(255,255,255,.75);
+      border-radius:var(--r-lg); padding:36px; box-shadow:var(--shadow-card); max-width:680px;
+    }
+    .form-card h3 { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:300; margin-bottom:28px; }
+
+    /* ─── MODAL ─────────────────────────────────────────────── */
+    .overlay {
+      display:none; position:fixed; inset:0; z-index:500;
+      background:rgba(58,53,48,.45); backdrop-filter:blur(8px);
+      align-items:center; justify-content:center; padding:24px;
+    }
+    .overlay.open { display:flex; }
+    .modal {
+      background:var(--white); border-radius:var(--r-lg); padding:40px;
+      max-width:460px; width:100%; box-shadow:0 24px 64px rgba(58,53,48,.22);
+      animation:fadeUp .28s ease;
+    }
+    .modal h3 { font-family:'Cormorant Garamond',serif; font-size:1.55rem; font-weight:300; margin-bottom:8px; }
+    .modal .modal-sub { color:var(--text-soft); font-size:.875rem; margin-bottom:24px; }
+    .modal-actions { display:flex; gap:12px; margin-top:24px; justify-content:flex-end; }
+    .btn-ghost { padding:11px 24px; border-radius:var(--r-md); border:1.5px solid var(--border-soft); background:transparent; color:var(--text-mid); font-family:'DM Sans',sans-serif; font-size:.875rem; cursor:pointer; transition:all .2s; }
+    .btn-ghost:hover { border-color:var(--sage); color:var(--text-dark); }
+
+    /* ─── LOADER / EMPTY ────────────────────────────────────── */
+    .loader { display:flex; align-items:center; justify-content:center; padding:60px; gap:8px; }
+    .dot { width:8px;height:8px;border-radius:50%;background:var(--sage);animation:pulse 1.4s ease-in-out infinite both; }
+    .dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+    @keyframes pulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1.2)} }
+    .empty { text-align:center; padding:60px 24px; color:var(--text-soft); }
+    .empty .ei { font-size:2.8rem; margin-bottom:14px; opacity:.45; }
+    .empty p { font-size:.875rem; }
+
+    /* ─── TOAST ─────────────────────────────────────────────── */
+    #toast {
+      position:fixed; bottom:32px; left:50%;
+      transform:translateX(-50%) translateY(20px);
+      background:var(--text-dark); color:#fff; padding:12px 26px;
+      border-radius:var(--r-pill); font-size:.84rem; opacity:0;
+      transition:all .3s ease; z-index:9999; pointer-events:none;
+      white-space:nowrap; max-width:90vw; text-align:center;
+    }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    #toast.ok  { background:#508050; }
+    #toast.err { background:#B05050; }
+
+    /* ─── FOOTER ────────────────────────────────────────────── */
+    footer { text-align:center; padding:32px 24px; font-size:.78rem; color:var(--text-soft); border-top:1px solid rgba(168,197,160,.18); margin-top:auto; }
+    footer .fl { font-family:'Cormorant Garamond',serif; font-size:1.1rem; color:var(--text-mid); margin-bottom:6px; }
+
+    /* ─── ANIMATIONS ────────────────────────────────────────── */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ─── RESPONSIVE ────────────────────────────────────────── */
     @media (max-width: 768px) {
-      .commander-row { grid-template-columns: 1fr; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .bracket-hero { grid-template-columns: 1fr; text-align: center; }
-      .bracket-badge { margin: 0 auto; }
-      .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
-      .market-total { flex-wrap: wrap; }
+      nav { padding:0 20px; }
+      .logo span { display:none; }
+      .hero { padding:60px 20px; min-height:auto; }
+      .features { grid-template-columns:1fr; padding:0 20px 56px; }
+      .section { padding:40px 20px; }
+      .frow { grid-template-columns:1fr; }
+      .dash-header { padding:28px 20px; }
+      .dash-tabs { padding:10px 20px; top:60px; }
+      .b-item { flex-direction:column; align-items:flex-start; }
+      .form-card { padding:24px 18px; }
+      .auth-card { padding:32px 22px; }
     }
-
     @media (max-width: 480px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
-      .container { padding: 16px 12px 48px; }
-      h1 { font-size: 18px; }
-      .bracket-badge { width: 68px; height: 68px; }
-      .bracket-badge .bracket-num { font-size: 28px; }
-      textarea { font-size: 14px; min-height: 44px; }
-      input[type="text"] { font-size: 16px; }
+      nav { height:60px; }
+      .classes-grid { grid-template-columns:1fr; }
+      .pending-actions { flex-direction:column; }
+      .btn-approve, .btn-reject { width:100%; text-align:center; }
+      .modal { padding:28px 20px; }
     }
-
-    /* ─── Animations ───────────────────────────────────────────── */
-    @keyframes fade-up {
-      from { opacity: 0; transform: translateY(14px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .animate-in { animation: fade-up 0.4s ease forwards; }
-    .delay-1    { animation-delay: 0.05s; opacity: 0; }
-    .delay-2    { animation-delay: 0.1s;  opacity: 0; }
-    .delay-3    { animation-delay: 0.15s; opacity: 0; }
-    .delay-4    { animation-delay: 0.2s;  opacity: 0; }
-    .delay-5    { animation-delay: 0.25s; opacity: 0; }
   </style>
 </head>
 <body>
+<div id="app">
 
-<header>
-  <div class="header-rune">⬡</div>
-  <h1>Toph's Forge</h1>
-  <div class="subtitle">MTG Commander Deck Analyzer</div>
-  <div class="toph-quote">"La tierra nunca miente. Tu deck tampoco."</div>
-</header>
+  <!-- NAV -->
+  <nav>
+    <div class="logo" onclick="nav('home')">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+        <path d="M20 33C20 33 7 24 7 15C7 9 13 7 20 11C27 7 33 9 33 15C33 24 20 33 20 33Z" fill="#A8C5A0" opacity=".75"/>
+        <path d="M20 29C20 29 4 20 6 9C10 3 17 7 20 13C23 7 30 3 34 9C36 20 20 29 20 29Z" fill="#90B8C8" opacity=".55"/>
+        <path d="M20 33C14 27 10 20 12 13C14 9 18 11 20 15C22 11 26 9 28 13C30 20 26 27 20 33Z" fill="#B8AACC" opacity=".45"/>
+        <circle cx="20" cy="19" r="3" fill="#A8C5A0"/>
+      </svg>
+      <span>ZenFlow</span>
+    </div>
+    <div id="navGuest">
+      <button class="btn-nav ghost"   onclick="nav('classes')">Clases</button>
+      <button class="btn-nav outline" onclick="nav('login')">Iniciar sesión</button>
+      <button class="btn-nav primary" onclick="nav('register')">Unirse</button>
+    </div>
+    <div id="navAuth">
+      <div class="avatar" id="navAvatar">U</div>
+      <span id="navName"></span>
+      <button class="btn-nav ghost"   onclick="nav('dashboard')">Mi espacio</button>
+      <button class="btn-nav outline" onclick="doLogout()">Salir</button>
+    </div>
+  </nav>
 
-<div class="container">
-
-  <!-- Input Panel -->
-  <div class="input-panel">
-    <div class="section-title">Forja tu análisis</div>
-
-    <div class="commander-row">
-      <div class="field-group">
-        <label class="field-label">Comandante</label>
-        <input type="text" id="commander-input" placeholder="Toph, the First Metalbender" />
+  <!-- HOME -->
+  <div id="page-home" class="page active">
+    <section class="hero">
+      <div class="hero-deco hero-deco-1"></div>
+      <div class="hero-deco hero-deco-2"></div>
+      <div class="hero-content">
+        <div class="hero-tag">✦ Encuentra tu centro</div>
+        <h1>Respira.<br><em>Fluye.</em><br>Transfórmate.</h1>
+        <p>Un refugio de paz y movimiento consciente.<br>Reserva tu lugar y comienza tu viaje hacia el bienestar.</p>
+        <div class="cta-group">
+          <button class="btn-cta primary" onclick="nav('classes')">Ver próximas clases</button>
+          <button class="btn-cta outline" onclick="nav('register')">Crear cuenta gratis</button>
+        </div>
       </div>
-      <div class="field-group">
-        <label class="field-label">Nombre del deck (opcional)</label>
-        <input type="text" id="deck-name-input" placeholder="Iron Fist Control" />
+    </section>
+    <div class="features">
+      <div class="feat-card">
+        <div class="feat-icon g">🌿</div>
+        <h3>Para todos los niveles</h3>
+        <p>Desde principiantes hasta practicantes avanzados, cada clase tiene su espacio perfecto.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon b">🌊</div>
+        <h3>Reserva en segundos</h3>
+        <p>Elige tu clase, envía tu solicitud y recibe confirmación del estudio en breve.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon p">🌸</div>
+        <h3>Instructores presentes</h3>
+        <p>Cada instructor guía con atención y cuidado, acompañándote en cada respiración.</p>
       </div>
     </div>
+    <footer>
+      <div class="fl">ZenFlow Yoga Studio</div>
+      <p>Un refugio para el movimiento consciente · Con amor desde el estudio</p>
+    </footer>
+  </div>
 
-    <div class="field-group">
-      <label class="field-label">Decklist</label>
-      <textarea id="decklist-input" placeholder="1 Sol Ring&#10;1 Arcane Signet&#10;37 Forest&#10;4 Lightning Bolt&#10;&#10;Formato: CANTIDAD Nombre de la carta&#10;(una carta por línea)"></textarea>
-      <div class="textarea-hint">⬡ Formato: "1 Nombre de Carta" por línea. Puedes pegar listas de Moxfield, Archidekt o MTGO.</div>
+  <!-- CLASSES -->
+  <div id="page-classes" class="page">
+    <div class="section">
+      <div class="section-hd">
+        <h2>Próximas clases</h2>
+        <p>Encuentra tu práctica y reserva tu lugar</p>
+      </div>
+      <div id="classesList" class="classes-grid">
+        <div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </div>
     </div>
-
-    <button class="btn-analyze" id="analyze-btn" onclick="analyzeDeck()">
-      ⬡ Forjar Análisis
-    </button>
   </div>
 
-  <!-- Loading -->
-  <div class="loading" id="loading">
-    <div class="forge-spinner"></div>
-    <div class="loading-text">Forjando en las catacumbas...</div>
-    <div class="loading-sub">Consultando Scryfall · Calculando poder · Determinando bracket</div>
+  <!-- LOGIN -->
+  <div id="page-login" class="page">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <h2>Bienvenida de vuelta</h2>
+        <p class="sub">Inicia sesión para gestionar tus reservas</p>
+        <div class="fgroup"><label>Email</label><input type="email" id="lEmail" placeholder="tu@email.com"/></div>
+        <div class="fgroup"><label>Contraseña</label><input type="password" id="lPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+        <button class="btn-submit" id="btnLogin" onclick="doLogin()">Iniciar sesión</button>
+        <p class="auth-switch">¿Sin cuenta? <a onclick="nav('register')">Únete al estudio</a></p>
+      </div>
+    </div>
   </div>
 
-  <!-- Error -->
-  <div class="error-panel" id="error-panel"></div>
+  <!-- REGISTER -->
+  <div id="page-register" class="page">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <h2>Únete a ZenFlow</h2>
+        <p class="sub">Crea tu cuenta y comienza a reservar</p>
+        <div class="fgroup"><label>Nombre completo</label><input type="text" id="rName" placeholder="Tu nombre"/></div>
+        <div class="fgroup"><label>Email</label><input type="email" id="rEmail" placeholder="tu@email.com"/></div>
+        <div class="fgroup"><label>Teléfono (opcional)</label><input type="tel" id="rPhone" placeholder="+54 11 0000-0000"/></div>
+        <div class="fgroup"><label>Contraseña</label><input type="password" id="rPass" placeholder="Mínimo 6 caracteres"/></div>
+        <button class="btn-submit" id="btnRegister" onclick="doRegister()">Crear cuenta</button>
+        <p class="auth-switch">¿Ya tienes cuenta? <a onclick="nav('login')">Iniciar sesión</a></p>
+      </div>
+    </div>
+  </div>
 
-  <!-- Results -->
-  <div id="results">
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page">
+    <div class="dash-header">
+      <h1 id="dashTitle">Mi espacio</h1>
+      <p  id="dashSub">—</p>
+    </div>
+    <div class="dash-tabs" id="dashTabs"></div>
+    <div class="section">
+      <!-- Student -->
+      <div id="tp-myBookings" class="tab-panel">
+        <div style="margin-bottom:28px"><h2 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.6rem">Mis reservas</h2></div>
+        <div id="myBookingsList" class="blist"></div>
+      </div>
+      <div id="tp-browse" class="tab-panel">
+        <div style="margin-bottom:28px"><h2 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.6rem">Clases disponibles</h2></div>
+        <div id="dashClasses" class="classes-grid"></div>
+      </div>
+      <!-- Admin -->
+      <div id="tp-pending" class="tab-panel">
+        <div style="margin-bottom:28px"><h2 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.6rem">Solicitudes pendientes</h2></div>
+        <div id="pendingList"></div>
+      </div>
+      <div id="tp-newClass" class="tab-panel">
+        <div class="form-card">
+          <h3>Nueva sesión de clase</h3>
+          <div class="fgroup"><label>Tipo de clase</label>
+            <select id="ncType"><option value="">Selecciona un tipo</option></select>
+          </div>
+          <div class="fgroup"><label>Título</label><input type="text" id="ncTitle" placeholder="Ej: Hatha Yoga Matutino"/></div>
+          <div class="frow">
+            <div class="fgroup"><label>Inicio</label><input type="datetime-local" id="ncStart"/></div>
+            <div class="fgroup"><label>Fin</label><input type="datetime-local" id="ncEnd"/></div>
+          </div>
+          <div class="frow">
+            <div class="fgroup"><label>Lugar</label><input type="text" id="ncLoc" value="Sala Principal"/></div>
+            <div class="fgroup"><label>Máx. estudiantes</label><input type="number" id="ncMax" value="12" min="1" max="50"/></div>
+          </div>
+          <div class="fgroup"><label>Descripción (opcional)</label><textarea id="ncDesc" placeholder="Describe la clase..."></textarea></div>
+          <button class="btn-submit" id="btnCreateClass" onclick="createClass()">Crear sesión</button>
+        </div>
+      </div>
+      <div id="tp-allBookings" class="tab-panel">
+        <div style="margin-bottom:28px"><h2 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.6rem">Todas las reservas</h2></div>
+        <div id="allBookingsList" class="blist"></div>
+      </div>
+      <div id="tp-students" class="tab-panel">
+        <div style="margin-bottom:28px"><h2 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.6rem">Estudiantes registrados</h2></div>
+        <div id="studentsList" class="blist"></div>
+      </div>
+    </div>
+  </div>
 
-    <!-- Commander -->
-    <div class="commander-panel animate-in delay-1" id="commander-display"></div>
+</div><!-- /app -->
 
-    <!-- Tier -->
-    <div id="tier-display" class="animate-in"></div>
-
-    <!-- Bracket -->
-    <div class="bracket-hero animate-in delay-2" id="bracket-display"></div>
-
-    <!-- Score Cards -->
-    <div class="stats-grid animate-in delay-3" id="stats-display"></div>
-
-    <!-- Breakdown -->
-    <div class="animate-in delay-4" id="breakdown-display"></div>
-
-    <!-- Market Value -->
-    <div class="animate-in delay-5" id="market-display"></div>
-
-    <!-- EDHREC Synergy -->
-    <div id="edhrec-display" class="animate-in delay-5"></div>
-
-    <!-- Reasons -->
-    <div id="reasons-display"></div>
-
+<!-- Modal reserva -->
+<div id="modalOverlay" class="overlay">
+  <div class="modal">
+    <h3>Reservar clase</h3>
+    <p class="modal-sub" id="modalInfo">—</p>
+    <div class="fgroup">
+      <label>Nota para el instructor (opcional)</label>
+      <textarea id="modalNotes" placeholder="Lesiones, experiencia previa, dudas..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn-cta primary" id="btnConfirm" onclick="confirmBooking()" style="padding:11px 28px">Enviar solicitud</button>
+    </div>
   </div>
 </div>
 
-<footer>
-  ⬡ Datos de cartas y precios via Scryfall API &nbsp;·&nbsp; Brackets según Wizards Commander Format Panel Beta 2025
-</footer>
+<div id="toast"></div>
 
 <script>
-  const API_URL = "https://mtg-ranking-api.onrender.com";
+// ════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════
+const SUPABASE_URL  = "https://prcniztgdsznxgxphcrt.supabase.co";
+const SUPABASE_KEY  = "sb_publishable_IZOsFNLW2f_pFJCd8Sy1cA_dzrK1BJw";
+const API_URL       = "https://zenflow-api-r15a.onrender.com"; // ← reemplazar con tu URL de Render
 
-  // ─── ENGINE DE ANÁLISIS LOCAL — Calibrado con 2 benchmarks ──────────────────
-  //
-  //  BENCHMARK A: Edgar Markov → 7.6–8 / Bracket 3
-  //    Combo Exquisite+Sanguine (accesible via tutores), 2 tutores T2/T3,
-  //    aristocrats engine sólido, mana base mixta, draw moderado
-  //    → target rawTotal ≈ 59–63 → power 76–80
-  //
-  //  BENCHMARK B: Lord of Pain → 7.0 / Bracket 2
-  //    0 tutores, 0 combos detectables, draw pasivo/punitivo,
-  //    ramp correcto, remoción sólida, sinergia pain/ping coherente
-  //    → target rawTotal ≈ 50–54 → power 69–72
-  //
-  //  Diferencia esperada: ~7–8 puntos entre ambos decks
+// ════════════════════════════════════════════════════════════
+// SUPABASE CLIENT
+// Auth (signUp, signIn, signOut, getSession) va directo a
+// Supabase desde el frontend — sin pasar por el backend.
+// ════════════════════════════════════════════════════════════
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  function localAnalyze(decklist, commander) {
-    const lines = decklist.trim().split("\n").filter(l => l.trim() && !l.startsWith("//") && !l.startsWith("#"));
-    const cards = lines.map(l => {
-      const m = l.match(/^(\d+)x?\s+(.+)$/i);
-      return m ? { name: m[2].trim(), quantity: parseInt(m[1]) } : { name: l.trim(), quantity: 1 };
-    });
-    const names = cards.map(c => c.name.toLowerCase());
-    const totalCards = cards.reduce((s, c) => s + c.quantity, 0);
-    const has = (n, list) => list.some(t => n.includes(t));
-    const countIn = list => names.filter(n => has(n, list)).length;
+// ─── State ──────────────────────────────────────────────────
+let S = { session: null, profile: null, selectedScheduleId: null };
 
-    // ── FAST MANA (cEDH threshold) ──────────────────────────────────────────
-    const FAST_MANA = ["black lotus","mox sapphire","mox ruby","mox jet","mox pearl","mox emerald",
-      "mana crypt","mana vault","chrome mox","mox diamond","lotus petal","ancient tomb","grim monolith"];
+// ─── Toast ──────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  setTimeout(() => el.className = '', 3400);
+}
 
-    // ── COMBOS INSTANT-WIN 2 cartas (bracket 4+) ────────────────────────────
-    const INSTANT_WIN_COMBOS = [
-      ["thassa's oracle","demonic consultation"], ["thassa's oracle","tainted pact"],
-      ["thassa's oracle","jace, wielder"], ["kiki-jiki","pestermite"],
-      ["kiki-jiki","deceiver exarch"], ["kiki-jiki","zealous conscripts"],
-      ["splinter twin","pestermite"], ["splinter twin","deceiver exarch"],
-      ["dramatic reversal","isochron scepter"], ["basalt monolith","power artifact"],
-      ["heliod, sun-crowned","walking ballista"], ["mikaeus","triskelion"],
-      ["doomsday","thassa"], ["ad nauseam","angel's grace"],
-      ["worldgorger dragon","animate dead"], ["twin","ballista"],
-    ];
+// ─── Router ─────────────────────────────────────────────────
+function nav(page) {
+  document.querySelectorAll('#app > .page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  window.scrollTo(0, 0);
+  if (page === 'classes')   loadClasses('classesList');
+  if (page === 'dashboard') initDashboard();
+}
 
-    // ── COMBOS CONOCIDOS MULTI-PIEZA (boost de poder calibrado) ────────────
-    // power: cuánto suman al rawTotal (calibrado: Edgar tiene ~14 de combos)
-    const KNOWN_COMBO_PAIRS = [
-      // Drain / lifegain loops
-      { pieces: ["exquisite blood","sanguine bond"],       label: "Exquisite Blood + Sanguine Bond",    power: 14, bracket_push: 3 },
-      { pieces: ["exquisite blood","vito, thorn"],         label: "Exquisite Blood + Vito",              power: 12, bracket_push: 3 },
-      { pieces: ["exquisite blood","bolas's citadel"],     label: "Exquisite Blood + Citadel",           power: 10, bracket_push: 3 },
-      // Sacrifice loops
-      { pieces: ["altar of dementia","gravecrawler"],      label: "Altar of Dementia + Gravecrawler",    power: 12, bracket_push: 3 },
-      { pieces: ["phyrexian altar","gravecrawler"],        label: "Phyrexian Altar + Gravecrawler",      power: 11, bracket_push: 3 },
-      { pieces: ["ashnod's altar","gravecrawler"],         label: "Ashnod's Altar + Gravecrawler",       power: 10, bracket_push: 3 },
-      // Food chain
-      { pieces: ["food chain","eternal scavenger"],        label: "Food Chain combo",                    power: 16, bracket_push: 4 },
-      { pieces: ["food chain","misthollow griffin"],       label: "Food Chain combo",                    power: 16, bracket_push: 4 },
-      // Pain/ping synergies — NUEVO para Lord of Pain archetype
-      { pieces: ["wound reflection","exsanguinate"],       label: "Wound Reflection + Exsanguinate",     power:  9, bracket_push: 0 },
-      { pieces: ["wound reflection","mogis"],              label: "Wound Reflection + Mogis",            power:  7, bracket_push: 0 },
-      { pieces: ["wound reflection","underworld dreams"],  label: "Wound Reflection + Symmetrical draw", power:  8, bracket_push: 0 },
-      { pieces: ["tainted remedy","lifelink"],             label: "Tainted Remedy + lifelink",           power:  7, bracket_push: 0 },
-      { pieces: ["tainted remedy","exsanguinate"],         label: "Tainted Remedy + life drain",         power:  8, bracket_push: 0 },
-      { pieces: ["stuffy doll","pariah's shield"],         label: "Stuffy Doll + Pariah's Shield",       power:  9, bracket_push: 0 },
-      { pieces: ["stuffy doll","blasphemous act"],         label: "Stuffy Doll + Blasphemous Act",       power:  9, bracket_push: 0 },
-      { pieces: ["brash taunter","blasphemous act"],       label: "Brash Taunter + Blasphemous Act",     power:  8, bracket_push: 0 },
-      { pieces: ["master of cruelties","rakdos, lord"],    label: "Master of Cruelties + Rakdos",        power:  8, bracket_push: 0 },
-      // Value engines
-      { pieces: ["pitiless plunderer","phyrexian altar"],  label: "Plunderer + Altar engine",            power:  8, bracket_push: 0 },
-      { pieces: ["smothering tithe","wheel of fortune"],   label: "Tithe + Wheel",                       power:  9, bracket_push: 0 },
-      { pieces: ["cathars' crusade","token"],              label: "Cathars' Crusade + tokens",           power:  5, bracket_push: 0 },
-      { pieces: ["skullclamp","token"],                    label: "Skullclamp + token engine",           power:  6, bracket_push: 0 },
-      { pieces: ["purphoros","token generator"],           label: "Purphoros ETB damage",                power:  7, bracket_push: 0 },
-    ];
+// ─── Nav UI ─────────────────────────────────────────────────
+function updateNav() {
+  const auth = !!S.session;
+  document.getElementById('navGuest').style.display = auth ? 'none' : 'flex';
+  document.getElementById('navAuth').style.display  = auth ? 'flex' : 'none';
+  if (auth && S.profile) {
+    const n = S.profile.full_name || S.session.user.email;
+    document.getElementById('navName').textContent   = n.split(' ')[0];
+    document.getElementById('navAvatar').textContent = n[0].toUpperCase();
+  }
+}
 
-    // ── TUTORES (T1 más eficientes, T3 menos) ──────────────────────────────
-    const TUTORS_T1 = ["vampiric tutor","imperial seal","mystical tutor","worldly tutor","enlightened tutor",
-      "demonic consultation","tainted pact","personal tutor","vampiric"];
-    const TUTORS_T2 = ["demonic tutor","diabolic intent","grim tutor","beseech the queen",
-      "cruel tutor","dark petition","mastermind's acquisition","varragoth","wishclaw talisman"];
-    const TUTORS_T3 = ["scheming symmetry","fabricate","tinker","reshape","transmute artifact",
-      "trophy mage","trinket mage","ranger of eos","recruiter of the guard",
-      "chord of calling","finale of devastation","diabolic tutor",
-      // Tutores de artefactos
-      "whir of invention","inventors' fair","urza's saga","scrap trawler","emry, lurker",
-      "welding jar","scour for scrap","goblin engineer","goblin welder","buried ruin",
-      "academy ruins","glint-nest crane","tribute mage","spellseeker"];
+// ─── API helper (llama al backend FastAPI con el JWT del usuario) ──
+async function api(method, path, body = null) {
+  if (!S.session?.access_token) throw new Error('No autenticado');
+  const headers = {
+    'Content-Type':  'application/json',
+    'Authorization': 'Bearer ' + S.session.access_token
+  };
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(API_URL + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || 'Error en la solicitud');
+  return data;
+}
 
-    // ── RAMP (fast = turno 1-2, med = artefactos 2 mana, slow = sorceries) ──
-    const RAMP_FAST = ["sol ring","mana crypt","arcane signet","mox diamond","chrome mox",
-      "jeweled lotus","lotus petal","dark ritual","cabal ritual","pyretic ritual","fellwar stone"];
-    const RAMP_MED  = ["boros signet","orzhov signet","dimir signet","gruul signet","simic signet",
-      "azorius signet","rakdos signet","izzet signet","selesnya signet","golgari signet",
-      "talisman of hierarchy","talisman of indulgence","talisman of dominance","talisman of unity",
-      "talisman of conviction","talisman of creativity","talisman of curiosity","talisman of impulse",
-      "talisman of resilience","talisman of progress","mind stone","thought vessel","commander's sphere",
-      "wayfarer's bauble","patchwork banner","heraldic banner","worn powerstone",
-      // Artefactos de mana variable / artefact ramp
-      "astral cornucopia","everflowing chalice","pentad prism","thran dynamo","gilded lotus",
-      "basalt monolith","worn powerstone","coalition relic","chromatic lantern","chromatic orrery",
-      "clock of omens","voltaic key","manifold key","unwinding clock","voltaic construct",
-      "energy chamber","coretapper","power conduit"];
-    const RAMP_SLOW = ["cultivate","kodama's reach","farseek","rampant growth","three visits",
-      "nature's lore","skyshroud claim","explosive vegetation","circuitous route","migration path"];
+// ════════════════════════════════════════════════════════════
+// AUTH — Supabase Auth JS SDK
+// signUp / signIn / signOut directo desde el frontend.
+// El trigger handle_new_user() en Supabase crea el perfil
+// automáticamente en la tabla profiles al registrarse.
+// ════════════════════════════════════════════════════════════
 
-    // ── INTERACCIÓN EN STACK ────────────────────────────────────────────────
-    const STACK_INTERACTION = ["counterspell","force of will","force of negation","pact of negation",
-      "mana drain","swan song","flusterstorm","mental misstep","negate","arcane denial",
-      "fierce guardianship","deflecting swat","deadly rollick","cyclonic rift",
-      "rapid hybridization","beast within","chaos warp","silence","orim's chant","rakdos charm",
-      // Más counters y hate
-      "metallic rebuke","mindbreak trap","spell pierce","miscast","dispel","spell snare",
-      "disallow","void shatter","stoic rebuttal","unified will","render silent","absorb",
-      "dovin's veto","mana leak","familiar's ruse","remand","logic knot","exclude",
-      "prohibit","syncopate","dismiss","condescend","thwart","foil","delay","time stop",
-      "grand abolisher","archon of emeria","drannith magistrate","cursed totem"];
-
-    // ── REMOCIÓN ────────────────────────────────────────────────────────────
-    const REMOVAL_EFFICIENT = ["swords to plowshares","path to exile","fatal push","abrupt decay",
-      "assassin's trophy","generous gift","beast within","chaos warp","cyclonic rift",
-      "rapid hybridization","deadly rollick","fierce guardianship","anguished unmaking",
-      "vindicate","vanishing verse","hero's downfall","return to dust","utter end",
-      "damn","austere command","toxic deluge","damnation","wrath of god","farewell",
-      "blasphemous act","black sun's zenith","decree of pain","bedevil","infernal grasp",
-      "feed the swarm","rakdos charm","massacre girl","feed the swarm","bedevil"];
-
-    // ── DRAW — diferenciado por calidad ─────────────────────────────────────
-    const DRAW_T1 = ["necropotence","rhystic study","mystic remora","sylvan library",
-      "phyrexian arena","esper sentinel","smothering tithe","consecrated sphinx",
-      "wheel of fortune","windfall","timetwister","dark confidant"];
-    const DRAW_T2 = ["skullclamp","night's whisper","sign in blood","painful truths",
-      "read the bones","brainstorm","ponder","preordain","welcoming vampire",
-      "twilight prophet","edric","underworld dreams","spiteful visions","fate unraveler",
-      "kederekt parasite","stormfist crusader","theater of horrors","florian, voldaren",
-      "tectonic giant","valgavoth","light up the stage","decree of pain",
-      // Artifact draw / top manipulation
-      "sensei's divining top","scroll rack","top","mystic forge","the reality chip",
-      "insight engine","jhoira, weatherlight","jhoira, ageless","future sight","optical illusion",
-      "brain freeze","inexorable tide","whir of invention","urza's saga"];
-    const DRAW_T3 = ["divination","harmonize","mind's eye","staff of nin","howling mine",
-      "font of mythos","dusk legion zealot","distant melody","beast whisperer",
-      "dead reckoning","phyrexian reclamation"];
-
-    // ── PROTECCIÓN ──────────────────────────────────────────────────────────
-    const PROTECTION = ["lightning greaves","swiftfoot boots","shroud","hexproof",
-      "boots","greaves","diplomatic immunity","sylvan safekeeper","boseiju",
-      "cavern of souls","teferi's protection","flawless maneuver","no mercy"];
-
-    // ── RECUPERACIÓN ────────────────────────────────────────────────────────
-    const RECOVERY = ["victimize","dread return","animate dead","reanimate","unearth",
-      "bloodline bidding","living death","beacon of unrest","zombify","journey to eternity",
-      "oversold cemetery","immortal servitude","phyrexian reclamation","late to dinner"];
-
-    // ── EXTRA TURNS ─────────────────────────────────────────────────────────
-    const EXTRA_TURNS = ["time warp","temporal manipulation","capture of jingzhou","part the waterveil",
-      "temporal mastery","temporal trespass","expropriate","nexus of fate","beacon of tomorrows",
-      "time stretch","emrakul, the promised end","seize the day"];
-
-    // ── LAND DENIAL ─────────────────────────────────────────────────────────
-    const LAND_DENY = ["armageddon","ravages of war","ruination","sunder","winter orb",
-      "static orb","blood moon","magus of the moon","back to basics","null rod",
-      "stony silence","wave of vitriol","obliterate","jokulhaups","devastation","global ruin"];
-
-    // ── ARQUETIPOS DE SINERGIA ──────────────────────────────────────────────
-    const TRIBAL_LORDS = ["legion lieutenant","lord of the","chief of the","metallic mimic",
-      "adaptive automaton","obelisk of urd","door of destinies","clavileño","roaming throne",
-      "cordial vampire","patron of the vein","herald's horn","kindred discovery","vanquisher's banner"];
-
-    const ARISTOCRAT_ENGINES = ["blood artist","cruel celebrant","vindictive vampire","falkenrath noble",
-      "vengeful bloodwitch","purphoros","zulaport cutthroat","nadier's nightblade","viscera seer",
-      "phyrexian altar","pitiless plunderer","skullclamp","ashnod's altar","syr konrad",
-      "bartolomé","elenda","yahenni","indulgent aristocrat","butcher of malakir"];
-
-    const PAIN_PING_ENGINES = ["mogis, god","wound reflection","underworld dreams","fate unraveler",
-      "spiteful visions","kederekt parasite","tainted remedy","kaervek","harsh mentor",
-      "bloodchief ascension","the lord of pain","master of cruelties","rampaging ferocidon",
-      "chandra's incinerator","nightshade harvester","vial smasher","stuffy doll","brash taunter",
-      "starscape cleric","gray merchant","exsanguinate","syr konrad"];
-
-    const REANIMATOR_PIECES = ["dread return","victimize","animate dead","reanimate","bloodline bidding",
-      "living death","unearth","bloodghast","gravecrawler","reassembling skeleton","persistent constrictor"];
-
-    const SPELLSLINGER = ["guttersnipe","electrostatic field","firebrand archer","thermo-alchemist",
-      "kalamax","veyran","magmatic channeler","birgi","thousand-year storm"];
-
-    const TOKENS_ENGINE = ["anointed procession","parallel lives","doubling season","cathars' crusade",
-      "orah","edgar","charismatic conqueror","mavren fein","bloodline keeper","vampire nocturnus",
-      "captain's claws","skullclamp","intangible virtue"];
-
-    // ── Arquetipo Artefactos / Storm / Affinity ─────────────────────────────────
-    const ARTIFACT_ENGINE = [
-      "isochron scepter","dramatic reversal","clock of omens","voltaic key","manifold key",
-      "unwinding clock","mystic forge","sensei's divining top","the reality chip","emry, lurker",
-      "urza, lord high","urza, prince","jhoira, weatherlight","jhoira, ageless",
-      "etherium sculptor","enthusiastic mechanaut","foundry inspector","cost reducer",
-      "kappa cannoneer","surge conductor","magistrate's scepter","astral cornucopia",
-      "everflowing chalice","pentad prism","coretapper","energy chamber","power conduit",
-      "proliferate","inexorable tide","karn, the great","lattice","mycosynth lattice",
-      "encroaching mycosynth","the millennium calendar","insight engine","whir of invention",
-      "fabricate","tinker","reshape","transmute artifact","brain freeze","aetherflux reservoir"
-    ];
-
-    // ── CONTEOS ─────────────────────────────────────────────────────────────
-    const t1Tutors = countIn(TUTORS_T1);
-    const t2Tutors = countIn(TUTORS_T2);
-    const t3Tutors = countIn(TUTORS_T3);
-    const tutorCount = t1Tutors + t2Tutors + t3Tutors;
-    const tutorScore = t1Tutors * 3.5 + t2Tutors * 2.5 + t3Tutors * 1.5;
-
-    const fastRamp = countIn(RAMP_FAST);
-    const medRamp  = countIn(RAMP_MED);
-    const slowRamp = countIn(RAMP_SLOW);
-    const rampCount = fastRamp + medRamp + slowRamp;
-    const rampScore = fastRamp * 3.0 + medRamp * 1.8 + slowRamp * 1.0;
-
-    const stackInt = countIn(STACK_INTERACTION);
-    const removal  = countIn(REMOVAL_EFFICIENT);
-    const interactionScore = stackInt * 2.2 + removal * 1.3;
-
-    const t1Draw = countIn(DRAW_T1);
-    const t2Draw = countIn(DRAW_T2);
-    const t3Draw = countIn(DRAW_T3);
-    const drawCount = t1Draw + t2Draw + t3Draw;
-    const drawScore = t1Draw * 3.5 + t2Draw * 1.8 + t3Draw * 0.9;
-
-    const protCount  = countIn(PROTECTION);
-    const recovCount = countIn(RECOVERY);
-    const hasFastMana  = names.some(n => has(n, FAST_MANA));
-    const fastManaCount = cards.filter(c => has(c.name.toLowerCase(), FAST_MANA)).length;
-    const hasXT       = names.some(n => has(n, EXTRA_TURNS));
-    const hasLD       = names.some(n => has(n, LAND_DENY));
-
-    // ── DETECCIÓN DE COMBOS ──────────────────────────────────────────────────
-    const foundCombos = [];
-    let comboPowerBonus = 0;
-    let comboMaxBracket = 0;
-    const comboLabels = [];
-
-    for (const cp of KNOWN_COMBO_PAIRS) {
-      if (cp.pieces.every(piece => names.some(n => n.includes(piece)))) {
-        foundCombos.push(...cp.pieces);
-        comboPowerBonus += cp.power;
-        comboMaxBracket = Math.max(comboMaxBracket, cp.bracket_push);
-        comboLabels.push(cp.label);
-      }
-    }
-
-    let hasInstantWinCombo = false;
-    for (const pair of INSTANT_WIN_COMBOS) {
-      if (pair.every(piece => names.some(n => n.includes(piece)))) {
-        hasInstantWinCombo = true;
-        comboMaxBracket = Math.max(comboMaxBracket, 4);
-        comboPowerBonus += 18;
-        comboLabels.push(`Combo instant-win: ${pair.join(" + ")}`);
-        break;
-      }
-    }
-
-    // ── MANA BASE ────────────────────────────────────────────────────────────
-    const landCards = cards.filter(c => {
-      const n = c.name.toLowerCase();
-
-      // ── Tierras básicas y nieve ───────────────────────────────────────────
-      if (/\b(island|mountain|forest|plains|swamp)\b/.test(n)) return true;
-      if (n.startsWith("snow-covered")) return true;
-
-      // ── Patrones de nombre que SIEMPRE son tierras ────────────────────────
-      // Fetchlands (todas terminan en mesa/strand/heath/tarn/flats/delta/catacombs/mire/foothills)
-      if (/(mesa|strand|heath|tarn|marsh flats|flats|delta|catacombs|mire|foothills)$/.test(n)) return true;
-      // Dual lands originales y shock lands
-      if (/\b(badlands|bayou|plateau|savannah|scrubland|taiga|tropical island|tundra|underground sea|volcanic island)\b/.test(n)) return true;
-      if (/(sacred foundry|stomping ground|breeding pool|watery grave|blood crypt|overgrown tomb|godless shrine|steam vents|hallowed fountain|temple garden)\b/.test(n)) return true;
-      // Check lands
-      if (/(clifftop retreat|isolated chapel|drowned catacomb|sulfur falls|woodland cemetery|glacial fortress|dragonskull summit|rootbound crag|sunpetal grove|hinterland harbor)\b/.test(n)) return true;
-      // Pain lands
-      if (/(adarkar wastes|brushland|karplusan forest|llanowar wastes|caves of koilos|shivan reef|sulfurous springs|underground river|yavimaya coast|battlefield forge|cave of koilos)\b/.test(n)) return true;
-      // Triomes, pathways, surveil lands, verge lands
-      if (/(triome|pathway|\/\/|verge|confluence)/.test(n) && !n.includes("convergence") && !n.includes("mana confluence")) {
-        // verge lands y pathways son tierras; mana confluence se captura abajo
-      }
-      if (/(verge)$/.test(n)) return true;
-      if (/\b(pathway)\b/.test(n)) return true;
-
-      // ── Tierras de utilidad por nombre específico ─────────────────────────
-      const NAMED = [
-        // ABUR duals ya cubiertos arriba
-        // Utility lands muy conocidas
-        "command tower","exotic orchard","reflecting pool","city of brass","mana confluence",
-        "forbidden orchard","gemstone mine","grand coliseum","pillar of the paruns",
-        "cavern of souls","unclaimed territory","secluded courtyard","path of ancestry",
-        "ancient tomb","urborg, tomb","cabal coffers","gaea's cradle","nykthos",
-        "phyrexian tower","maze of ith","boseiju","otawara","eiganjo","takenuma",
-        "sea of clouds","morphic pool","spire garden","bountiful promenade",
-        "undergrowth stadium","training center","spectator seating","luxury suite",
-        "vault of champions","rejuvenating springs","waterlogged grove","Bocinator",
-        "bojuka bog","rogue's passage","academy ruins","the mycosynth gardens",
-        "karn's bastion","nesting grounds","darksteel citadel","spire of industry",
-        "ancient den","seat of the synod","great furnace","vault of whispers",
-        "tree of tales","razortide bridge","rustvale bridge","silverbluff bridge",
-        "goldmire bridge","mistvault bridge","crystal grotto",
-        "evolving wilds","terramorphic expanse","fabled passage","prismatic vista",
-        "naya panorama","bant panorama","esper panorama","grixis panorama","jund panorama",
-        "gateway plaza","rupture spire","transguild promenade","arcane sanctum",
-        "crumbling necropolis","jungle shrine","seaside citadel","savage lands",
-        "vivid crag","vivid creek","vivid grove","vivid marsh","vivid meadow",
-        "fire-lit thicket","twilight mire","sunken ruins","mystic gate","wooded bastion",
-        "graven cairns","flooded grove","cascade bluffs",
-        "shadowblood ridge","shivan gorge","shivan reef","sulfurous springs",
-        "blackcleave cliffs","copperline gorge","darkslick shores","razorverge thicket",
-        "lavaclaw reaches","raging ravine","stirring wildwood","celestial colonnade",
-        "creeping tar pit","colonnade","ravine","wildwood","colonnade",
-        "port town","prairie stream","sunken hollow","smoldering marsh","canopy vista",
-        "inspiring vantage","concealed courtyard","spirebluff canal","botanical sanctum",
-        "blooming marsh","choked estuary","foreboding ruins","fortified village",
-        "sheltered thicket","scattered groves","irrigated farmland",
-        "vault of the archangel","vault of champions",
-        "temple of abandon","temple of deceit","temple of enlightenment",
-        "temple of epiphany","temple of malady","temple of malice","temple of mystery",
-        "temple of plenty","temple of silence","temple of triumph",
-        "krosan verge","blighted woodland","blighted fen","blighted cataract",
-        "blighted gorge","blighted steppe",
-        "fetid heath","mystic monastery","nomad outpost","opulent palace",
-        "frontier bivouac","sandsteppe citadel","jungle shrine",
-        // EDHREC/Commander staples adicionales
-        "command beacon","reliquary tower","war room","geier reach sanitarium",
-        "emergence zone","talon gates","mikokoro","minamo","oboro",
-        "hall of the storm giants","hive of the eye tyrant","lair of the hydra",
-        "den of the bugbear","faceless haven","throne of eldraine",
-        "cephalid coliseum","high market","miren, the moaning well",
-        "phyrexian fleshgorger","witchbane orb",
-      ];
-      if (NAMED.some(kw => n.includes(kw))) return true;
-
-      // ── Fallback: nombre contiene "land" (excluye non-lands con "land" en texto) ──
-      if (n.includes("land") && !n.includes("landfall") && !n.includes("land's edge") &&
-          !n.includes("understanding") && !n.includes("overland") && !n.includes("island")) return true;
-
-      return false;
-    });
-    const landCount = landCards.reduce((s, c) => s + c.quantity, 0);
-
-    const SLOW_LANDS = ["temple of","temple of the","basilica","snarl","foreboding","shineshadow",
-      "tainted","garrison","aqueduct","refuge","bounce land","evolving wilds","terramorphic",
-      "geothermal bog","smoldering marsh","spinerock knoll","leechridden","witch's clinic"];
-    const slowLandCount = landCards.filter(c =>
-      SLOW_LANDS.some(t => c.name.toLowerCase().includes(t))
-    ).length;
-
-    const GOOD_LANDS = ["command tower","exotic orchard","godless shrine","clifftop retreat",
-      "isolated chapel","battlefield forge","rugged prairie","cavern of souls",
-      "path of ancestry","unclaimed territory","secluded courtyard","vault of the archangel",
-      "blackcleave cliffs","dragonskull summit","graven cairns","shadowblood ridge",
-      "sulfurous springs","canyon slough","shivan gorge","fire nation palace"];
-    const goodLandCount = landCards.filter(c =>
-      GOOD_LANDS.some(t => c.name.toLowerCase().includes(t))
-    ).length;
-
-    let manaBaseScore = 10;
-    if (hasFastMana) manaBaseScore += 6;
-    manaBaseScore += Math.min(fastRamp * 1.5, 5);
-    manaBaseScore -= Math.min(slowLandCount * 1.0, 5);
-    manaBaseScore += Math.min(goodLandCount * 0.4, 3);
-    if (landCount < 33) manaBaseScore -= 3;
-    if (landCount >= 36 && landCount <= 38) manaBaseScore += 1;
-    manaBaseScore = Math.max(0, Math.min(manaBaseScore, 20));
-
-    // ── SINERGIA (arquetipos) ─────────────────────────────────────────────────
-    const tribalCount     = countIn(TRIBAL_LORDS);
-    const aristocratCount = countIn(ARISTOCRAT_ENGINES);
-    const painCount       = countIn(PAIN_PING_ENGINES);
-    const reanimCount     = countIn(REANIMATOR_PIECES);
-    const spellslingerCnt = countIn(SPELLSLINGER);
-    const tokensCnt       = countIn(TOKENS_ENGINE);
-    const artifactCnt     = countIn(ARTIFACT_ENGINE);
-
-    // Score máx por arquetipo: 8 puntos cada uno (calibrado)
-    let synergyScore = 0;
-    synergyScore += Math.min(tribalCount * 2.0, 8);
-    synergyScore += Math.min(aristocratCount * 1.4, 8);
-    synergyScore += Math.min(painCount * 1.3, 8);
-    synergyScore += Math.min(reanimCount * 1.2, 5);
-    synergyScore += Math.min(spellslingerCnt * 1.5, 5);
-    synergyScore += Math.min(tokensCnt * 1.2, 5);
-    synergyScore += Math.min(artifactCnt * 0.9, 8);  // ← Artifact/Storm archetype
-
-    // Bonus coherencia
-    const archetypes = [
-      tribalCount >= 3, aristocratCount >= 3, painCount >= 4,
-      reanimCount >= 2, spellslingerCnt >= 2, tokensCnt >= 2, artifactCnt >= 5
-    ];
-    const activeArchetypes = archetypes.filter(Boolean).length;
-    // Bonus coherencia calibrado: menos puntos para evitar saturación en B3
-    if (activeArchetypes >= 2) synergyScore += 3;
-    if (activeArchetypes >= 3) synergyScore += 2;
-    synergyScore = Math.min(synergyScore, 20);
-
-    // ── PODER GLOBAL (0–100) ──────────────────────────────────────────────────
-    //
-    // Pesos máx calibrados con 2 benchmarks:
-    //
-    //  Categoría       | Máx | Edgar  | Lord of Pain
-    //  Tutores         |  20 |  ~8    |  ~0
-    //  Ramp            |  15 |  ~9    |  ~9
-    //  Draw            |  15 |  ~8    |  ~7
-    //  Combos          |  18 |  ~14   |  ~9  (Stuffy+Act, Brash+Act, Wound+Exs)
-    //  Interacción     |  10 |  ~4    |  ~6
-    //  Mana base       |  10 |  ~7    |  ~6
-    //  Sinergia        |  12 |  ~10   |  ~8
-    //  Total           | 100 |  ~60   |  ~45
-    //                                 → Edgar ~78, Lord of Pain ~70
-    //
-    // rawTotal_max ≈ 100, calibrar: power = (raw / 100) * 100 * factor
-    // factor ajustado para que Edgar=60→78, LordPain=45→70
-
-    const rawTutor    = Math.min(tutorScore, 20);
-    const rawRamp     = Math.min(rampScore, 15);
-    const rawDraw     = Math.min(drawScore, 15);
-    const rawCombo    = Math.min(comboPowerBonus, 18);
-    const rawInteract = Math.min(interactionScore, 10);
-    const rawMana     = (manaBaseScore / 20) * 10;
-    const rawSynergy  = (synergyScore / 20) * 12;
-
-    const rawTotal = rawTutor + rawRamp + rawDraw + rawCombo + rawInteract + rawMana + rawSynergy;
-
-    // Curva calibrada: f(x) = 35 + (x / 80) * 65
-    // f(60)=84 era alto; ajustamos: f(x) = 30 + (x/100)*75
-    // Target: raw=60 → 75, raw=45 → 64
-    // f(x) = 28 + (x/100)*76  → f(60)=73.6, f(45)=62.2  (un poco bajo)
-    // f(x) = 32 + (x/85)*60   → f(60)=74.4, f(45)=63.8  ✓ más cerca
-    // Ajuste fino: Edgar 60→78, LordPain 45→70
-    // f(x) = 35 + (x/78)*55   → f(60)=77.3, f(45)=66.7  ✓
-    const powerScore = Math.round(Math.min(Math.max(35 + (rawTotal / 78) * 55, 10), 100));
-
-    // ── CONSISTENCIA (0–100) ─────────────────────────────────────────────────
-    const consistency = Math.round(Math.min(
-      (tutorScore / 15 * 30) +
-      (drawScore  / 14 * 28) +
-      (rampScore  / 12 * 20) +
-      (landCount >= 36 ? 22 : (landCount / 36) * 22)
-    , 100));
-
-    // ── RESILIENCIA (0–100) ──────────────────────────────────────────────────
-    // 5 pilares calibrados con benchmarks conocidos:
-    //
-    //  Pilar                  Peso  | Edgar | Inspirit | Lord of Pain
-    //  Interacción proactiva   25   |   8   |    22    |     12
-    //  Remoción + wipes        25   |  18   |    16    |     20
-    //  Protección de piezas    20   |  12   |    16    |      8
-    //  Recursión / plan B      18   |  14   |    14    |      6
-    //  Velocidad de cierre     12   |  10   |    12    |      8
-    //  ─────────────────────────────────────────────────────
-    //  Total calibrado        100   |  62   |    80    |     54
-    //  (Edgar ~62, Inspirit ~78, Lord ~55 — razonable)
-
-    // Pilar 1 — Interacción proactiva (counters, removals instantáneos, tax)
-    const STACK_ALL = ["counterspell","force of will","force of negation","pact of negation",
-      "mana drain","swan song","flusterstorm","mental misstep","negate","arcane denial",
-      "fierce guardianship","deflecting swat","deadly rollick","silence","orim's chant",
-      "mindbreak trap","metallic rebuke","stoic rebuttal","unified will","render silent",
-      "dovin's veto","spell pierce","spell snare","dispel","disallow","void shatter",
-      "absorb","faerie trickery","rewind","remand","delay","time stop",
-      "grand abolisher","drannith magistrate","rule of law","eidolon of rhetoric",
-      "ethersworn canonist","thalia, guardian","cursed totem","torpor orb","hushbringer"];
-    const stackAllCount = countIn(STACK_ALL);
-    const p1 = Math.min(stackAllCount / 6 * 25, 25);
-
-    // Pilar 2 — Remoción + Wipes (single target + sweepers ponderados)
-    const WIPES = ["wrath of god","damnation","toxic deluge","austere command","cyclonic rift",
-      "farewell","damn","black sun's zenith","blasphemous act","decree of pain",
-      "hour of devastation","massacre girl","crux of fate","extinction event",
-      "merciless eviction","bontu's last reckoning","yahenni's expertise","rout",
-      "phyrexian rebirth","final judgment","in garruk's wake","cleansing nova","end-raze forerunners"];
-    const wipeCount   = countIn(WIPES);
-    const singleRemoval = Math.max(0, removal - wipeCount);
-    // wipes valen 2x porque manejan múltiples amenazas
-    const removalWeighted = singleRemoval + wipeCount * 2;
-    const p2 = Math.min(removalWeighted / 10 * 25, 25);
-
-    // Pilar 3 — Protección de piezas clave
-    const PROTECTION_ALL = ["lightning greaves","swiftfoot boots","heroic intervention",
-      "teferi's protection","flawless maneuver","deflecting swat","fierce guardianship",
-      "boseiju","cavern of souls","diplomatic immunity","darksteel plate","indestructibility",
-      "curator's ward","shielded by faith","welding jar","padeem","commander's plate",
-      "robe of stars","whispersilk cloak","greaves","boots","no mercy","ghostly prison",
-      "propaganda","windborn muse","energy field","ghostly prison","sphere of safety"];
-    const protAllCount = countIn(PROTECTION_ALL);
-    const p3 = Math.min(protAllCount / 4 * 20, 20);
-
-    // Pilar 4 — Recursión y plan B (capacidad de rehacerse tras disruption)
-    const RECOVERY_ALL = ["victimize","dread return","animate dead","reanimate","unearth",
-      "bloodline bidding","living death","beacon of unrest","zombify","phyrexian reclamation",
-      "academy ruins","eternal witness","regrowth","noxious revival","reconstruction",
-      "welding jar","goblin welder","goblin engineer","emry, lurker","oversold cemetery",
-      "late to dinner","persist","undying","postmortem lunge","rescue from the underworld",
-      "pull from eternity","shadow of mortality","replenish","starfield of nyx",
-      "hall of heliod's generosity","sun titan","karmic guide","reveillark","nether traitor"];
-    const recovAllCount = countIn(RECOVERY_ALL);
-    const p4 = Math.min(recovAllCount / 4 * 18, 18);
-
-    // Pilar 5 — Velocidad de cierre (múltiples finishers / redundancia)
-    const CLOSERS = ["aetherflux reservoir","thassa's oracle","laboratory maniac","jace, wielder",
-      "approach of the second sun","felidar sovereign","biorhythm","revel in riches",
-      "hellkite tyrant","torment of hailfire","exsanguinate","debt to the deathless",
-      "brain freeze","blue sun's zenith","stroke of genius","insidious dreams",
-      "direct currents","karn's sylex","worldgorger dragon","tendrils of agony",
-      "grape shot","grapeshot","empty the warrens","mind's desire","storm"];
-    const closerCount = countIn(CLOSERS);
-    const totalWincons = Math.min(comboLabels.length + closerCount, 5);
-    const p5 = Math.min(totalWincons / 3 * 12, 12);
-
-    const resilience = Math.round(Math.min(p1 + p2 + p3 + p4 + p5, 100));
-
-    // ── BRACKET ──────────────────────────────────────────────────────────────
-    const reasons = [];
-    let bracket;
-
-    // Bracket 5: requiere fast mana de Tier 1 (Crypt/Vault/Monolith) + combo o tutores masivos
-    const FAST_MANA_T1 = ["mana crypt","mana vault","grim monolith","black lotus",
-      "mox sapphire","mox ruby","mox jet","mox pearl","mox emerald"];
-    const fastManaT1Count = cards.filter(c => FAST_MANA_T1.some(f => c.name.toLowerCase().includes(f))).length;
-    const hasFastManaT1 = fastManaT1Count >= 1;
-
-    if (hasFastManaT1 && fastManaCount >= 2 && (hasInstantWinCombo || t1Tutors >= 3)) {
-      bracket = 5;
-      reasons.push("Fast mana Tier 1 (Crypt/Vault) + combo instant-win o tutores T1 masivos → cEDH");
-    } else if (hasInstantWinCombo || (hasFastMana && tutorCount >= 3) || hasLD) {
-      bracket = 4;
-      if (hasInstantWinCombo) reasons.push("Combo de 2 cartas que gana de inmediato detectado");
-      if (hasFastMana) reasons.push("Fast mana presente (Mana Crypt, Mox Diamond, etc.)");
-      if (hasLD) reasons.push("⚠️ Mass land denial (Armageddon, Blood Moon, etc.)");
-    } else if (comboMaxBracket >= 3 || tutorCount >= 2 || hasXT || (comboPowerBonus >= 12 && tutorCount >= 1)) {
-      bracket = 3;
-      if (comboLabels.length > 0) reasons.push(`Combos potentes accesibles: ${comboLabels.slice(0,2).join(", ")}`);
-      if (tutorCount >= 2) reasons.push(`${tutorCount} tutores — acceso consistente a piezas clave`);
-      if (hasXT) reasons.push("Extra turns detectadas");
-    } else if (comboPowerBonus >= 6 || rampCount >= 5 || drawCount >= 4 || synergyScore >= 8) {
-      bracket = 2;
-      reasons.push("Sinergias sólidas y motores de valor, sin combos de alto impacto ni tutores");
-    } else {
-      bracket = 1;
-      reasons.push("Deck introductorio, sin sinergias complejas ni combos detectables");
-    }
-
-    // Detalles adicionales
-    const archetypeNames = [
-      tribalCount >= 3 ? "Tribal" : null,
-      aristocratCount >= 3 ? "Aristocrats" : null,
-      painCount >= 4 ? "Pain/Ping" : null,
-      reanimCount >= 2 ? "Reanimador" : null,
-      spellslingerCnt >= 2 ? "Spellslinger" : null,
-      tokensCnt >= 2 ? "Tokens" : null,
-      artifactCnt >= 5 ? "Artefactos/Storm" : null,
-    ].filter(Boolean);
-    if (archetypeNames.length > 0)
-      reasons.push(`Motor principal: ${archetypeNames.join(" + ")}`);
-    if (slowLandCount >= 4)
-      reasons.push(`⚠️ ${slowLandCount} tierras lentas — baja velocidad en los primeros turnos`);
-    if (stackInt === 0)
-      reasons.push("⚠️ Sin interacción en stack — vulnerable a combos enemigos turno 3–4");
-    else if (stackInt === 1)
-      reasons.push("Interacción en stack limitada (1 pieza)");
-
-    // ── SALIDA ────────────────────────────────────────────────────────────────
-    const uniqueComboPieces = [...new Set(foundCombos)].slice(0, 12).map(n =>
-      n.split(' ').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')
+// Carga el perfil desde Supabase y lo guarda en S.profile
+// Tiene timeout de 5s para no congelar la UI si Supabase tarda o RLS bloquea
+async function loadProfile(userId) {
+  const fallback = { id: userId, role: 'student', full_name: '', email: '' };
+  try {
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 5000)
     );
-
-    const BRACKET_DESC = [
-      "",
-      "Deck introductorio. Ideal para partidas con nuevos jugadores.",
-      "Sinergias sólidas y motores de valor sin combos complejos. Juego casual optimizado.",
-      "Deck con combos potentes y/o tutores consistentes. Presión constante.",
-      "Deck muy optimizado. Combos rápidos, fast mana o land denial. Alta presión.",
-      "cEDH — máximo nivel competitivo. Combos turno 3, tutores masivos, fast mana.",
-    ];
-
-    // ── TIER DEL DECK ─────────────────────────────────────────────────────────
-    // Combinación ponderada de los 4 parámetros principales:
-    //   Poder        40% — qué tan fuerte es la estrategia
-    //   Consistencia 25% — qué tan seguido ejecuta su plan
-    //   Resistencia  20% — capacidad de aguantar y cerrar
-    //   Sinergia     15% — cohesión interna del deck
-    //
-    // La sinergia local (synergyScore 0-20) se normaliza a 0-100
-    // y se incorpora como 4to parámetro
-    // Normalizamos sobre 22 para que un deck B3 muy tribal llegue a ~85-90 max
-    // y reservar 95-100 para decks B4+ con múltiples arquetipos activos
-    const synergyNorm = Math.round(Math.min((synergyScore / 22) * 100, 100));
-    const compositeScore = Math.round(
-      powerScore * 0.40 +
-      consistency * 0.25 +
-      resilience  * 0.20 +
-      synergyNorm * 0.15
-    );
-
-    // Tier basado en composite score + ajustes por bracket
-    let tier, tierLabel, tierColor, tierDesc;
-    // Tier: el Bracket es la ancla principal, composite permite subir solo con margen amplio
-    if (bracket >= 5 || compositeScore >= 92) {
-      tier = "S"; tierColor = "#e8c84a";
-      tierLabel = "Tier S — Élite";
-      tierDesc  = "Deck de nivel cEDH o extremadamente optimizado. Capaz de ganar en los primeros turnos de forma consistente.";
-    } else if (bracket === 4 || (bracket < 4 && compositeScore >= 82)) {
-      tier = "A"; tierColor = "#4fc87a";
-      tierLabel = "Tier A — Optimizado";
-      tierDesc  = "Deck altamente competitivo con combos accesibles, tutores o fast mana. Domina mesas de pod casual avanzado.";
-    } else if (bracket === 3 || compositeScore >= 58) {
-      tier = "B"; tierColor = "#3a9fd8";
-      tierLabel = "Tier B — Sólido";
-      tierDesc  = "Deck bien construido con sinergias claras y un plan de victoria consistente. Competitivo en mesas casuales.";
-    } else if (bracket === 2 || compositeScore >= 38) {
-      tier = "C"; tierColor = "#c8a84a";
-      tierLabel = "Tier C — Funcional";
-      tierDesc  = "Deck funcional con motores básicos. Puede ganar partidas pero le falta consistencia o potencia de cierre.";
+    const query = sb.from('profiles').select('*').eq('id', userId).single();
+    const { data, error } = await Promise.race([query, timeout]);
+    if (error) {
+      console.warn('loadProfile:', error.message);
+      S.profile = fallback;
     } else {
-      tier = "D"; tierColor = "#888";
-      tierLabel = "Tier D — Introductorio";
-      tierDesc  = "Deck en desarrollo. Buen punto de partida para nuevos jugadores, con espacio para crecer.";
+      S.profile = data || fallback;
     }
-
-    return {
-      commander: commander || "No especificado",
-      bracket,
-      bracket_description: BRACKET_DESC[bracket],
-      bracket_reasons: reasons,
-      power_score: powerScore,
-      consistency_score: consistency,
-      resilience_score: resilience,
-      synergy_score: synergyNorm,
-      composite_score: compositeScore,
-      tier, tier_label: tierLabel, tier_color: tierColor, tier_desc: tierDesc,
-      ramp_count: rampCount,
-      removal_count: removal,
-      draw_count: drawCount,
-      combo_pieces: uniqueComboPieces.length,
-      combo_pieces_found: uniqueComboPieces,
-      combo_labels: comboLabels,
-      tutor_count: tutorCount,
-      land_count: landCount,
-      slow_land_count: slowLandCount,
-      total_cards: totalCards,
-      has_extra_turns: hasXT,
-      has_land_denial: hasLD,
-      total_market_value_usd: null,
-      top_expensive_cards: [],
-    };
+  } catch(e) {
+    console.warn('loadProfile fallback:', e.message);
+    S.profile = fallback;
   }
+}
 
-    async function analyzeDeck() {
-    const decklist = document.getElementById("decklist-input").value.trim();
-    const commander = document.getElementById("commander-input").value.trim();
-
-    if (!decklist) {
-      showError("Por favor ingresa tu decklist.");
-      return;
-    }
-
-    setLoading(true);
-    hideError();
-    document.getElementById("results").style.display = "none";
-    document.getElementById("edhrec-display").innerHTML = "";
-
-    // ── PASO 1: Análisis local (instantáneo, siempre correcto) ───────────────
-    let data;
-    try {
-      data = localAnalyze(decklist, commander);
-    } catch (err) {
-      setLoading(false);
-      showError("Error al analizar el deck: " + err.message);
-      return;
-    }
-
-    // ── PASO 2: Backend con EDHREC + precios — TODO espera al spinner ────────
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 40000);
-      const resp = await fetch(API_URL + "/analyze/edhrec", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decklist, commander }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (resp.ok) {
-        const bd = await resp.json();
-        // Precios del backend
-        if (bd.total_market_value_usd != null) {
-          data.total_market_value_usd = bd.total_market_value_usd;
-          data.top_expensive_cards    = bd.top_expensive_cards || [];
-        }
-        // EDHREC synergy data
-        if (bd.edhrec && bd.edhrec.score !== null) {
-          data.edhrec = bd.edhrec;
-        }
-      }
-    } catch (e) {
-      // Backend offline o timeout — mostramos igual sin precios/EDHREC
-      console.info("Backend no disponible:", e.message);
-    }
-
-    // ── PASO 3: Mostrar todo junto ───────────────────────────────────────────
-    setLoading(false);
-    renderResults(data);
-    if (data.edhrec) renderEdhrec(data.edhrec, commander);
+// onAuthStateChange solo sincroniza la sesión y la nav
+// No navega — la navegación la controla quien inició la acción
+sb.auth.onAuthStateChange(async (event, session) => {
+  S.session = session;
+  if (session) {
+    await loadProfile(session.user.id);
+  } else {
+    S.profile = null;
   }
+  updateNav();
+});
 
-  function synBadge(s) {
-    if (s >= 0.20) return `<span class="edhrec-synergy-badge syn-high">+${Math.round(s*100)}%</span>`;
-    if (s >= 0.08) return `<span class="edhrec-synergy-badge syn-mid">+${Math.round(s*100)}%</span>`;
-    return `<span class="edhrec-synergy-badge syn-low">+${Math.round(s*100)}%</span>`;
+async function doLogin() {
+  const email    = document.getElementById('lEmail').value.trim();
+  const password = document.getElementById('lPass').value;
+  if (!email || !password) return toast('Completa todos los campos', 'err');
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true; btn.textContent = 'Iniciando…';
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    // Cargamos el perfil explícitamente antes de navegar
+    // para que initDashboard ya tenga S.profile.role disponible
+    await loadProfile(data.user.id);
+    updateNav();
+    toast('Bienvenida ✦', 'ok');
+    nav('dashboard');
+  } catch(e) {
+    toast(e.message || 'Credenciales inválidas', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Iniciar sesión';
   }
+}
 
-  function renderEdhrec(ed, commander) {
-    const edhrecDiv = document.getElementById("edhrec-display");
-
-    if (!ed || ed.error || ed.score === null) {
-      edhrecDiv.innerHTML = `
-        <div class="edhrec-panel">
-          <div class="edhrec-error">
-            <span style="color:#3a9fd8;font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.1em;">⬡ EDHREC</span><br>
-            ${ed?.error || "No se encontraron datos para este comandante en EDHREC."}
-            <div style="margin-top:8px;font-size:11px;">Asegurate de que el nombre del comandante esté escrito correctamente.</div>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    const scoreClass = ed.score >= 65 ? "high" : ed.score >= 40 ? "mid" : "low";
-    const scoreLabel = ed.score >= 65 ? "Alta sinergia con el comandante"
-                     : ed.score >= 40 ? "Sinergia moderada con el comandante"
-                     : "Baja alineación con el arquetipo del comandante";
-
-    const tagsHtml = (ed.tags || []).map(t =>
-      `<span class="edhrec-tag">${escHtml(t)}</span>`
-    ).join("");
-
-    const topInDeck = (ed.top_synergy_in_deck || []).slice(0, 6).map(c => `
-      <div class="edhrec-card-row">
-        <span class="edhrec-card-name">${escHtml(c.name)}</span>
-        ${synBadge(c.synergy)}
-      </div>`).join("");
-
-    const recommendations = (ed.recommendations || []).slice(0, 6).map(c => `
-      <div class="edhrec-card-row">
-        <span class="edhrec-card-name" style="color:var(--text-dim)">${escHtml(c.name)}</span>
-        ${synBadge(c.synergy)}
-      </div>`).join("");
-
-    const numDecks = ed.num_decks ? `${ed.num_decks.toLocaleString()} decks registrados` : "";
-
-    edhrecDiv.innerHTML = `
-      <div class="edhrec-panel animate-in">
-        <div class="edhrec-header">
-          <span class="edhrec-logo">⬡ EDHREC Synergy</span>
-          <div class="edhrec-score-wrap">
-            <span class="edhrec-score ${scoreClass}">${ed.score}</span>
-            <span class="edhrec-score-suffix">/100</span>
-          </div>
-          <div class="edhrec-meta">
-            <div style="color:var(--text-bright);font-weight:600;">${scoreLabel}</div>
-            <div>${ed.in_pool} / ${ed.total_non_land} cartas coinciden con el pool del comandante</div>
-            ${numDecks ? `<div style="color:var(--text-dim)">${numDecks}</div>` : ""}
-          </div>
-        </div>
-
-        ${tagsHtml ? `<div class="edhrec-tags">${tagsHtml}</div>` : ""}
-
-        <div class="edhrec-coverage">
-          <span style="font-size:11px;color:var(--text-dim);font-family:'Cinzel',serif;letter-spacing:0.08em;">COBERTURA</span>
-          <div class="edhrec-coverage-bar">
-            <div class="edhrec-coverage-fill" style="width:${ed.coverage_pct}%"></div>
-          </div>
-          <span class="edhrec-coverage-label">${ed.coverage_pct}%</span>
-        </div>
-
-        <div class="edhrec-cols">
-          <div>
-            <div class="edhrec-col-title">⚡ Tus cartas más sinérgicas</div>
-            ${topInDeck || '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">No se encontraron cartas en el pool</div>'}
-          </div>
-          <div>
-            <div class="edhrec-col-title">💡 Recomendaciones EDHREC</div>
-            ${recommendations || '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">Sin recomendaciones disponibles</div>'}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderMarket(d) {
-    const market = document.getElementById("market-display");
-    if (d.total_market_value_usd !== null && d.total_market_value_usd > 0) {
-      const topCards = d.top_expensive_cards || [];
-      market.innerHTML = `
-        <div class="market-panel">
-          <div class="section-title">Valor de Mercado</div>
-          <div class="market-total">
-            <span class="market-label">Valor estimado:</span>
-            <span class="market-value">$${d.total_market_value_usd.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-            <span style="font-size:13px;color:var(--metal-dim);">USD</span>
-          </div>
-          ${topCards.length > 0 ? `
-            <table class="cards-table">
-              <thead><tr><th>#</th><th>Carta</th><th>Valor</th></tr></thead>
-              <tbody>
-                ${topCards.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="card-name">${escHtml(c.name)}</td><td class="card-val">$${c.value.toFixed(2)}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ""}
-        </div>
-      `;
-    }
-  }
-
-  function renderTier(d) {
-    const el = document.getElementById("tier-display");
-    if (!el || !d.tier) return;
-
-    const color = d.tier_color || "#888";
-    const barColor = (label, score) => {
-      if (score >= 70) return "#4fc87a";
-      if (score >= 45) return "#c8a84a";
-      return "#e05555";
-    };
-
-    const bars = [
-      { label: "Poder",       val: d.power_score,       w: d.power_score },
-      { label: "Consistencia",val: d.consistency_score, w: d.consistency_score },
-      { label: "Resistencia", val: d.resilience_score,  w: d.resilience_score },
-      { label: "Sinergia",    val: d.synergy_score||0,  w: d.synergy_score||0 },
-    ];
-
-    el.innerHTML = `
-      <div class="tier-panel" style="border-color:${color}22;">
-        <div class="tier-badge" style="color:${color};background:${color}18;border-color:${color};">${d.tier}</div>
-        <div class="tier-info">
-          <div class="tier-name" style="color:${color};">${escHtml(d.tier_label)}</div>
-          <div class="tier-desc">${escHtml(d.tier_desc)}</div>
-        </div>
-        <div class="tier-right">
-          <div class="tier-composite">
-            <div class="tier-composite-val">${d.composite_score}</div>
-            <div class="tier-composite-label">SCORE<br>COMPUESTO</div>
-          </div>
-          <div class="tier-bars">
-            ${bars.map(b => `
-              <div class="tier-bar-row">
-                <span class="tier-bar-label">${b.label}</span>
-                <div class="tier-bar-track">
-                  <div class="tier-bar-fill" style="width:${b.w}%;background:${barColor(b.label,b.val)};"></div>
-                </div>
-                <span class="tier-bar-val">${b.val}</span>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderResults(d) {
-    const results = document.getElementById("results");
-    results.style.display = "block";
-
-    // Tier
-    renderTier(d);
-
-    // Commander
-    const cmdPanel = document.getElementById("commander-display");
-    cmdPanel.innerHTML = `
-      <div class="commander-icon">⚔️</div>
-      <div>
-        <div class="commander-label">Comandante</div>
-        <div class="commander-name">${escHtml(d.commander)}${d._local ? ' <span style="font-size:11px;color:var(--metal-dim);">(análisis local)</span>' : ''}</div>
-        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">${d.total_cards} cartas en el deck</div>
-      </div>
-    `;
-
-    // Bracket
-    const bracketPanel = document.getElementById("bracket-display");
-    const bracketClass = `b${d.bracket}`;
-    const bracketName = ["","Introductorio","Casual","Optimizado","Altamente Optimizado","cEDH"][d.bracket];
-    const tags = [];
-    if (d.has_extra_turns) tags.push(`<span class="tag tag-warn">⏱ Extra Turns</span>`);
-    if (d.has_land_denial) tags.push(`<span class="tag tag-warn">🌍 Land Denial</span>`);
-    if (d.combo_pieces > 0) tags.push(`<span class="tag tag-gold">⚡ ${d.combo_pieces} Combo Pieces</span>`);
-    if (d.tutor_count > 0) tags.push(`<span class="tag tag-info">🔍 ${d.tutor_count} Tutores</span>`);
-
-    bracketPanel.innerHTML = `
-      <div class="bracket-badge ${bracketClass}">
-        <span class="bracket-num">${d.bracket}</span>
-      </div>
-      <div class="bracket-info">
-        <h2>Bracket ${d.bracket} — ${bracketName}</h2>
-        <div class="bracket-desc">${d.bracket_description}</div>
-        <div class="bracket-tags">${tags.join('')}</div>
-      </div>
-    `;
-
-    // Stats
-    const statsGrid = document.getElementById("stats-display");
-    statsGrid.innerHTML = `
-      <div class="stat-card power">
-        <div class="stat-label">Poder del Deck</div>
-        <div class="stat-value">${d.power_score}<span class="stat-suffix">/100</span></div>
-        <div class="stat-desc">${powerDesc(d.power_score)}</div>
-        <div class="score-bar"><div class="score-fill" style="width:${d.power_score}%"></div></div>
-      </div>
-      <div class="stat-card consist">
-        <div class="stat-label">Consistencia</div>
-        <div class="stat-value">${d.consistency_score}<span class="stat-suffix">/100</span></div>
-        <div class="stat-desc">${consistDesc(d.consistency_score)}</div>
-        <div class="score-bar"><div class="score-fill" style="width:${d.consistency_score}%"></div></div>
-      </div>
-      <div class="stat-card resil">
-        <div class="stat-label">Resistencia</div>
-        <div class="stat-value">${d.resilience_score}<span class="stat-suffix">/100</span></div>
-        <div class="stat-desc">${resilDesc(d.resilience_score)}</div>
-        <div class="score-bar"><div class="score-fill" style="width:${d.resilience_score}%"></div></div>
-      </div>
-      <div class="stat-card synergy">
-        <div class="stat-label">Sinergia</div>
-        <div class="stat-value">${d.synergy_score||0}<span class="stat-suffix">/100</span></div>
-        <div class="stat-desc">${synergyDesc(d.synergy_score||0)}</div>
-        <div class="score-bar"><div class="score-fill" style="width:${d.synergy_score||0}%"></div></div>
-      </div>
-    `;
-
-    // Breakdown
-    const breakdown = document.getElementById("breakdown-display");
-    breakdown.innerHTML = `
-      <div class="section-title">Desglose del Deck</div>
-      <div class="breakdown-grid">
-        <div class="breakdown-item">
-          <div class="breakdown-label">🌿 Ramp</div>
-          <div class="breakdown-val">${d.ramp_count}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">⚔️ Remoción</div>
-          <div class="breakdown-val">${d.removal_count}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">📖 Card Draw</div>
-          <div class="breakdown-val">${d.draw_count}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">💫 Combos</div>
-          <div class="breakdown-val">${d.combo_pieces}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">🔍 Tutores</div>
-          <div class="breakdown-val">${d.tutor_count}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">🏔️ Tierras</div>
-          <div class="breakdown-val">${d.land_count}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">🐌 Tierras Lentas</div>
-          <div class="breakdown-val" style="color:${(d.slow_land_count||0)>=4?'var(--red-bright)':'var(--text-bright)'}">${d.slow_land_count||0}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">🛡 Protección</div>
-          <div class="breakdown-val">${d.has_extra_turns?'⏱':''} ${d.has_land_denial?'🌍':''} ${!d.has_extra_turns&&!d.has_land_denial?'—':''}</div>
-        </div>
-      </div>
-      ${(d.combo_labels && d.combo_labels.length > 0) || (d.combo_pieces_found && d.combo_pieces_found.length > 0) ? `
-        <div class="reasons-panel" style="margin-top:0;margin-bottom:20px;">
-          <div class="section-title">Combos Detectados</div>
-          ${d.combo_labels && d.combo_labels.length > 0 ? `
-            <div style="margin-bottom:10px;">
-              ${d.combo_labels.map(l=>`
-                <div class="reason-item">
-                  <div class="reason-dot" style="background:var(--red-bright)"></div>
-                  <span style="color:var(--red-bright);font-weight:600;">${escHtml(l)}</span>
-                </div>`).join('')}
-            </div>
-          ` : ''}
-          ${d.combo_pieces_found && d.combo_pieces_found.length > 0 ? `
-            <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-family:'Cinzel',serif;letter-spacing:0.1em;">PIEZAS INVOLUCRADAS</div>
-            <div class="combo-list">${d.combo_pieces_found.map(c=>`<span class="combo-chip">${escHtml(c)}</span>`).join('')}</div>
-          ` : ''}
-        </div>
-      ` : ''}
-    `;
-
-    // Market
-    const market = document.getElementById("market-display");
-    if (d.total_market_value_usd !== null && d.total_market_value_usd > 0) {
-      const topCards = d.top_expensive_cards || [];
-      market.innerHTML = `
-        <div class="market-panel">
-          <div class="section-title">Valor de Mercado</div>
-          <div class="market-total">
-            <span class="market-label">Valor estimado:</span>
-            <span class="market-value">$${d.total_market_value_usd.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-            <span style="font-size:13px;color:var(--metal-dim);">USD</span>
-          </div>
-          ${topCards.length > 0 ? `
-            <table class="cards-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Carta</th>
-                  <th>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${topCards.map((c,i)=>`
-                  <tr>
-                    <td class="rank">${i+1}</td>
-                    <td class="card-name">${escHtml(c.name)}</td>
-                    <td class="card-val">$${c.value.toFixed(2)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-        </div>
-      `;
+async function doRegister() {
+  const full_name = document.getElementById('rName').value.trim();
+  const email     = document.getElementById('rEmail').value.trim();
+  const phone     = document.getElementById('rPhone').value.trim();
+  const password  = document.getElementById('rPass').value;
+  if (!full_name || !email || !password) return toast('Completa los campos obligatorios', 'err');
+  if (password.length < 6) return toast('Contraseña mínimo 6 caracteres', 'err');
+  const btn = document.getElementById('btnRegister');
+  btn.disabled = true; btn.textContent = 'Creando cuenta…';
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name, phone } }
+    });
+    if (error) throw error;
+    // Si confirmación de email está deshabilitada, la sesión llega de inmediato
+    if (data.session) {
+      await loadProfile(data.user.id);
+      updateNav();
+      toast('Cuenta creada ✦', 'ok');
+      nav('dashboard');
     } else {
-      market.innerHTML = `
-        <div class="market-panel">
-          <div class="section-title">Valor de Mercado</div>
-          <div style="font-size:13px;color:var(--text-dim);padding:8px 0;">
-            💡 Conecta el backend desplegado en Render para obtener precios en tiempo real vía Scryfall.
-          </div>
-        </div>
-      `;
+      // Si está habilitada, pedir que verifique el email
+      toast('Cuenta creada. Verifica tu email para activarla ✦', 'ok');
+      nav('login');
     }
+  } catch(e) {
+    toast(e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Crear cuenta';
+  }
+}
 
-    // Reasons
-    const reasons = document.getElementById("reasons-display");
-    if (d.bracket_reasons && d.bracket_reasons.length > 0) {
-      reasons.innerHTML = `
-        <div class="reasons-panel animate-in">
-          <div class="section-title">Por qué este Bracket</div>
-          ${d.bracket_reasons.map(r=>`
-            <div class="reason-item">
-              <div class="reason-dot"></div>
-              <span>${escHtml(r)}</span>
-            </div>
-          `).join('')}
+async function doLogout() {
+  await sb.auth.signOut();
+  S = { session: null, profile: null, selectedScheduleId: null };
+  updateNav();
+  nav('home');
+  toast('Sesión cerrada');
+}
+
+// ════════════════════════════════════════════════════════════
+// CLASES — consulta directa a Supabase (lectura pública por RLS)
+// ════════════════════════════════════════════════════════════
+async function loadClasses(targetId = 'classesList') {
+  const el = document.getElementById(targetId);
+  el.innerHTML = '<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const now = new Date().toISOString();
+    const { data, error } = await sb
+      .from('class_availability')
+      .select('*')
+      .gte('start_time', now)
+      .order('start_time')
+      .limit(60);
+    if (error) throw error;
+    renderClasses(data || [], targetId);
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="ei">🌸</div><p>No se pudieron cargar las clases. Intenta de nuevo.</p></div>';
+  }
+}
+
+function renderClasses(list, targetId) {
+  const el = document.getElementById(targetId);
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="ei">🌿</div><p>No hay clases programadas próximamente.</p></div>';
+    return;
+  }
+  const lvl = { beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado', all_levels:'Todos los niveles' };
+  el.innerHTML = list.map(c => {
+    const start = new Date(c.start_time);
+    const dStr  = start.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+    const tStr  = start.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
+    const full  = (c.available_spots || 0) <= 0;
+    const color = c.color_hex || '#A8C5A0';
+    const auth  = !!S.session;
+    return `<div class="class-card">
+      <div class="cc-head">
+        <div class="cc-top">
+          <span class="type-badge" style="background:${color}">${c.class_type || 'Clase'}</span>
+          <span class="spots${full ? ' full' : ''}">● ${full ? 'Sin lugares' : c.available_spots + ' lugar' + (c.available_spots !== 1 ? 'es' : '')}</span>
         </div>
-      `;
+        <h3>${c.title}</h3>
+        <div class="class-meta">${lvl[c.level] || ''} · ${c.duration_min} min</div>
+      </div>
+      <div class="cc-body">
+        <div class="cc-info">
+          <span class="cc-info-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${dStr}, ${tStr}
+          </span>
+          <span class="cc-info-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${c.location || 'Sala Principal'}
+          </span>
+          ${c.instructor_name ? `<span class="cc-info-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${c.instructor_name}</span>` : ''}
+        </div>
+        ${auth
+          ? `<button class="btn-reserve" ${full ? 'disabled' : ''} onclick="openModal('${c.id}','${esc(c.title)}','${dStr} ${tStr}')">
+              ${full ? 'Sin disponibilidad' : 'Reservar lugar →'}
+            </button>`
+          : `<button class="btn-reserve" onclick="nav('login')">Inicia sesión para reservar</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+// ════════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════════
+function initDashboard() {
+  if (!S.session) { nav('login'); return; }
+  const isAdmin = S.profile?.role === 'admin';
+  document.getElementById('dashTitle').textContent = isAdmin ? 'Panel de administración' : 'Mi espacio zen';
+  document.getElementById('dashSub').textContent   = isAdmin
+    ? 'Gestiona clases, horarios y reservas del estudio'
+    : `Hola, ${(S.profile?.full_name || '').split(' ')[0] || ''} 🌿`;
+
+  const tabs = isAdmin ? [
+    { id: 'pending',     label: 'Solicitudes',        fn: loadPending },
+    { id: 'newClass',    label: 'Nueva clase',         fn: loadClassForm },
+    { id: 'allBookings', label: 'Todas las reservas',  fn: loadAllBookings },
+    { id: 'students',    label: 'Estudiantes',         fn: loadStudents },
+  ] : [
+    { id: 'myBookings',  label: 'Mis reservas',        fn: loadMyBookings },
+    { id: 'browse',      label: 'Ver clases',          fn: () => loadClasses('dashClasses') },
+  ];
+
+  const tabsEl = document.getElementById('dashTabs');
+  tabsEl.innerHTML = tabs.map((t, i) =>
+    `<button class="tab${i === 0 ? ' active' : ''}">${t.label}</button>`
+  ).join('');
+  tabsEl.querySelectorAll('.tab').forEach((btn, i) => {
+    btn.onclick = () => {
+      tabsEl.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tp-' + tabs[i].id)?.classList.add('active');
+      tabs[i].fn?.();
+    };
+  });
+
+  // activar primer tab
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tp-' + tabs[0].id)?.classList.add('active');
+  tabs[0].fn?.();
+}
+
+// ─── Mis reservas ────────────────────────────────────────────
+async function loadMyBookings() {
+  const el = document.getElementById('myBookingsList');
+  el.innerHTML = '<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const { data, error } = await sb
+      .from('bookings')
+      .select('*, class_schedules(title, start_time, end_time, location, class_types(name, color_hex))')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!data.length) {
+      el.innerHTML = '<div class="empty"><div class="ei">🌸</div><p>Aún no tienes reservas. ¡Explora las clases!</p></div>';
+      return;
     }
-
-    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.innerHTML = data.map(b => {
+      const s = b.class_schedules;
+      const d = s ? new Date(s.start_time).toLocaleDateString('es-AR', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+      return `<div class="b-item">
+        <div class="b-info">
+          <h4>${s?.title || 'Clase'}</h4>
+          <p>${d} · ${s?.location || ''}</p>
+          ${b.notes ? `<p style="margin-top:3px;font-style:italic">Nota: ${b.notes}</p>` : ''}
+          ${b.admin_notes ? `<p style="margin-top:3px;color:var(--text-mid)">Admin: ${b.admin_notes}</p>` : ''}
+        </div>
+        <div class="b-right">
+          <span class="status ${b.status}">${sLabel(b.status)}</span>
+          ${['pending','approved'].includes(b.status)
+            ? `<button class="btn-cancel-link" onclick="cancelBooking('${b.id}')">Cancelar</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><p>Error al cargar reservas.</p></div>';
   }
+}
 
-  function powerDesc(s) {
-    if (s >= 85) return "Deck devastador";
-    if (s >= 65) return "Muy amenazante";
-    if (s >= 45) return "Competitivo moderado";
-    if (s >= 25) return "Casual con dientes";
-    return "Deck introductorio";
-  }
+function sLabel(s) {
+  return { pending:'Pendiente', approved:'Confirmada', rejected:'No aceptada', cancelled:'Cancelada' }[s] || s;
+}
 
-  function consistDesc(s) {
-    if (s >= 80) return "Encuentra sus piezas clave";
-    if (s >= 55) return "Relativamente predecible";
-    if (s >= 35) return "Algo variable";
-    return "Dependiente del mazo inicial";
-  }
+async function cancelBooking(id) {
+  if (!confirm('¿Cancelar esta reserva?')) return;
+  try {
+    const { error } = await sb.from('bookings').update({ status: 'cancelled' }).eq('id', id);
+    if (error) throw error;
+    toast('Reserva cancelada', 'ok');
+    loadMyBookings();
+  } catch(e) { toast(e.message, 'err'); }
+}
 
-  function synergyDesc(s) {
-    if (s >= 75) return "Arquetipo muy coherente";
-    if (s >= 55) return "Buena cohesión interna";
-    if (s >= 35) return "Sinergias moderadas";
-    if (s >= 15) return "Pocas sinergias detectadas";
-    return "Sin arquetipo definido";
-  }
+// ─── Modal de reserva ────────────────────────────────────────
+function openModal(schedId, title, dateStr) {
+  if (!S.session) { nav('login'); return; }
+  S.selectedScheduleId = schedId;
+  document.getElementById('modalInfo').textContent = `${title} — ${dateStr}`;
+  document.getElementById('modalNotes').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
 
-  function resilDesc(s) {
-    if (s >= 80) return "Cierra partidas con facilidad";
-    if (s >= 55) return "Puede sobrevivir hate";
-    if (s >= 35) return "Vulnerable a disrupción";
-    return "Difícil recuperarse";
-  }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  S.selectedScheduleId = null;
+}
 
-  function setLoading(on) {
-    document.getElementById("loading").style.display = on ? "block" : "none";
-    document.getElementById("analyze-btn").disabled = on;
-    document.getElementById("analyze-btn").textContent = on ? "⬡ Forjando..." : "⬡ Forjar Análisis";
+async function confirmBooking() {
+  if (!S.selectedScheduleId) return;
+  const notes = document.getElementById('modalNotes').value;
+  const btn   = document.getElementById('btnConfirm');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    const { error } = await sb.from('bookings').insert({
+      schedule_id: S.selectedScheduleId,
+      student_id:  S.session.user.id,
+      status:      'pending',
+      notes
+    });
+    if (error) {
+      if (error.code === '23505') throw new Error('Ya tienes una reserva para esta clase');
+      throw error;
+    }
+    closeModal();
+    toast('Solicitud enviada. Te avisaremos cuando sea confirmada ✦', 'ok');
+  } catch(e) {
+    toast(e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Enviar solicitud';
   }
+}
 
-  function showError(msg) {
-    const el = document.getElementById("error-panel");
-    el.textContent = msg;
-    el.style.display = "block";
+// ─── Admin: Pendientes ───────────────────────────────────────
+async function loadPending() {
+  const el = document.getElementById('pendingList');
+  el.innerHTML = '<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const pending = await api('GET', '/admin/bookings/pending');
+    if (!pending.length) {
+      el.innerHTML = '<div class="empty"><div class="ei">🌿</div><p>Sin solicitudes pendientes. Todo en calma ✦</p></div>';
+      return;
+    }
+    el.innerHTML = pending.map(b => {
+      const s = b.class_schedules, p = b.profiles;
+      const d = s ? new Date(s.start_time).toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }) : '—';
+      return `<div class="pending-card">
+        <h4><span>${p?.full_name || 'Estudiante'}</span> solicita unirse a "${s?.title || 'clase'}"</h4>
+        <div class="pending-meta">
+          📅 ${d} &nbsp;·&nbsp; 📍 ${s?.location || ''}
+          ${p?.email ? ` &nbsp;·&nbsp; 📧 ${p.email}` : ''}
+          ${p?.phone ? ` &nbsp;·&nbsp; 📞 ${p.phone}` : ''}
+          ${b.notes ? `<br>💬 <em>${b.notes}</em>` : ''}
+        </div>
+        <div class="pending-actions">
+          <button class="btn-approve" onclick="reviewBooking('${b.id}','approved')">✓ Aceptar</button>
+          <button class="btn-reject"  onclick="reviewBooking('${b.id}','rejected')">✕ Rechazar</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><p>Error al cargar solicitudes.</p></div>';
   }
+}
 
-  function hideError() {
-    document.getElementById("error-panel").style.display = "none";
-  }
+async function reviewBooking(id, status) {
+  try {
+    await api('POST', '/admin/bookings/review', { booking_id: id, status });
+    toast(status === 'approved' ? 'Reserva aceptada ✦' : 'Reserva rechazada', 'ok');
+    loadPending();
+  } catch(e) { toast(e.message, 'err'); }
+}
 
-  function escHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// ─── Admin: Todas las reservas ───────────────────────────────
+async function loadAllBookings() {
+  const el = document.getElementById('allBookingsList');
+  el.innerHTML = '<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const list = await api('GET', '/admin/bookings/all');
+    if (!list.length) { el.innerHTML = '<div class="empty"><p>Sin reservas aún.</p></div>'; return; }
+    el.innerHTML = list.map(b => {
+      const s = b.class_schedules, p = b.profiles;
+      const d = s ? new Date(s.start_time).toLocaleDateString('es-AR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+      return `<div class="b-item">
+        <div class="b-info">
+          <h4>${p?.full_name || '—'} <span style="font-weight:300;color:var(--text-soft)">en</span> ${s?.title || '—'}</h4>
+          <p>${d} · ${p?.email || ''}</p>
+        </div>
+        <span class="status ${b.status}">${sLabel(b.status)}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="empty"><p>Error al cargar.</p></div>'; }
+}
+
+// ─── Admin: Estudiantes ──────────────────────────────────────
+async function loadStudents() {
+  const el = document.getElementById('studentsList');
+  el.innerHTML = '<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const list = await api('GET', '/admin/students');
+    if (!list.length) { el.innerHTML = '<div class="empty"><p>Sin estudiantes aún.</p></div>'; return; }
+    el.innerHTML = list.map(s => `<div class="b-item">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar" style="width:42px;height:42px;font-size:.95rem">${(s.full_name || 'U')[0].toUpperCase()}</div>
+        <div class="b-info">
+          <h4>${s.full_name}</h4>
+          <p>${s.email}${s.phone ? ' · ' + s.phone : ''}</p>
+        </div>
+      </div>
+      <span style="font-size:.76rem;color:var(--text-soft)">${new Date(s.created_at).toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' })}</span>
+    </div>`).join('');
+  } catch(e) { el.innerHTML = '<div class="empty"><p>Error al cargar.</p></div>'; }
+}
+
+// ─── Admin: Formulario nueva clase ───────────────────────────
+async function loadClassForm() {
+  try {
+    const { data } = await sb.from('class_types').select('*').order('name');
+    const sel = document.getElementById('ncType');
+    sel.innerHTML = '<option value="">Selecciona un tipo</option>' +
+      (data || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function createClass() {
+  const typeId = document.getElementById('ncType').value;
+  const title  = document.getElementById('ncTitle').value.trim();
+  const start  = document.getElementById('ncStart').value;
+  const end    = document.getElementById('ncEnd').value;
+  const loc    = document.getElementById('ncLoc').value.trim();
+  const max    = parseInt(document.getElementById('ncMax').value) || 12;
+  const desc   = document.getElementById('ncDesc').value.trim();
+
+  if (!typeId || !title || !start || !end) return toast('Completa los campos obligatorios', 'err');
+  if (new Date(start) >= new Date(end)) return toast('El fin debe ser posterior al inicio', 'err');
+
+  const btn = document.getElementById('btnCreateClass');
+  btn.disabled = true; btn.textContent = 'Creando…';
+  try {
+    await api('POST', '/admin/schedules', {
+      class_type_id: typeId,
+      title,
+      description:   desc,
+      start_time:    new Date(start).toISOString(),
+      end_time:      new Date(end).toISOString(),
+      location:      loc,
+      max_students:  max
+    });
+    toast('Clase creada exitosamente ✦', 'ok');
+    ['ncTitle','ncStart','ncEnd','ncDesc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('ncType').value = '';
+    document.getElementById('ncMax').value  = '12';
+  } catch(e) {
+    toast(e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Crear sesión';
   }
+}
+
+// ─── Init: restaurar sesión existente ────────────────────────
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    S.session = session;
+    await loadProfile(session.user.id);
+    updateNav();
+  }
+})();
 </script>
-
 </body>
 </html>
