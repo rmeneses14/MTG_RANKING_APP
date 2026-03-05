@@ -786,6 +786,92 @@
       border: 1px solid var(--border);
     }
 
+    /* ─── Tier Panel ─────────────────────────────────────────────────────── */
+    .tier-panel {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: linear-gradient(135deg, #0d1a12 0%, #0a1510 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tier-badge {
+      width: 72px;
+      height: 72px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-size: 36px;
+      font-weight: 900;
+      flex-shrink: 0;
+      position: relative;
+      border: 2px solid currentColor;
+    }
+    .tier-badge::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 17px;
+      border: 1px solid currentColor;
+      opacity: 0.3;
+    }
+    .tier-info { flex: 1; min-width: 180px; }
+    .tier-name {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .tier-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .tier-composite {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      min-width: 80px;
+    }
+    .tier-composite-val {
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-bright);
+    }
+    .tier-composite-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      font-family: 'Cinzel', serif;
+      text-align: center;
+    }
+    .tier-bars {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 20px;
+      min-width: 200px;
+    }
+    .tier-bar-row { display: flex; align-items: center; gap: 8px; }
+    .tier-bar-label { font-size: 11px; color: var(--text-dim); width: 76px; flex-shrink: 0; }
+    .tier-bar-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .tier-bar-fill { height: 100%; border-radius: 2px; }
+    .tier-bar-val { font-size: 11px; color: var(--text); width: 26px; text-align: right; flex-shrink: 0; }
+
     .combo-chip {
       background: rgba(184,50,50,0.1);
       border: 1px solid var(--border-red);
@@ -895,6 +981,9 @@
 
     <!-- Commander -->
     <div class="commander-panel animate-in delay-1" id="commander-display"></div>
+
+    <!-- Tier -->
+    <div id="tier-display" class="animate-in"></div>
 
     <!-- Bracket -->
     <div class="bracket-hero animate-in delay-2" id="bracket-display"></div>
@@ -1315,15 +1404,76 @@
       (landCount >= 36 ? 22 : (landCount / 36) * 22)
     , 100));
 
-    // ── RESILIENCIA / CAPACIDAD DE CIERRE (0–100) ────────────────────────────
-    const resilience = Math.round(Math.min(
-      (removal    / 8  * 24) +
-      (stackInt   / 5  * 20) +
-      (recovCount / 4  * 18) +
-      (protCount  / 4  * 14) +
-      (comboLabels.length > 0 ? Math.min(comboLabels.length * 5, 20) : 0) +
-      (activeArchetypes >= 2 ? 8 : 0)
-    , 100));
+    // ── RESILIENCIA (0–100) ──────────────────────────────────────────────────
+    // 5 pilares calibrados con benchmarks conocidos:
+    //
+    //  Pilar                  Peso  | Edgar | Inspirit | Lord of Pain
+    //  Interacción proactiva   25   |   8   |    22    |     12
+    //  Remoción + wipes        25   |  18   |    16    |     20
+    //  Protección de piezas    20   |  12   |    16    |      8
+    //  Recursión / plan B      18   |  14   |    14    |      6
+    //  Velocidad de cierre     12   |  10   |    12    |      8
+    //  ─────────────────────────────────────────────────────
+    //  Total calibrado        100   |  62   |    80    |     54
+    //  (Edgar ~62, Inspirit ~78, Lord ~55 — razonable)
+
+    // Pilar 1 — Interacción proactiva (counters, removals instantáneos, tax)
+    const STACK_ALL = ["counterspell","force of will","force of negation","pact of negation",
+      "mana drain","swan song","flusterstorm","mental misstep","negate","arcane denial",
+      "fierce guardianship","deflecting swat","deadly rollick","silence","orim's chant",
+      "mindbreak trap","metallic rebuke","stoic rebuttal","unified will","render silent",
+      "dovin's veto","spell pierce","spell snare","dispel","disallow","void shatter",
+      "absorb","faerie trickery","rewind","remand","delay","time stop",
+      "grand abolisher","drannith magistrate","rule of law","eidolon of rhetoric",
+      "ethersworn canonist","thalia, guardian","cursed totem","torpor orb","hushbringer"];
+    const stackAllCount = countIn(STACK_ALL);
+    const p1 = Math.min(stackAllCount / 6 * 25, 25);
+
+    // Pilar 2 — Remoción + Wipes (single target + sweepers ponderados)
+    const WIPES = ["wrath of god","damnation","toxic deluge","austere command","cyclonic rift",
+      "farewell","damn","black sun's zenith","blasphemous act","decree of pain",
+      "hour of devastation","massacre girl","crux of fate","extinction event",
+      "merciless eviction","bontu's last reckoning","yahenni's expertise","rout",
+      "phyrexian rebirth","final judgment","in garruk's wake","cleansing nova","end-raze forerunners"];
+    const wipeCount   = countIn(WIPES);
+    const singleRemoval = Math.max(0, removal - wipeCount);
+    // wipes valen 2x porque manejan múltiples amenazas
+    const removalWeighted = singleRemoval + wipeCount * 2;
+    const p2 = Math.min(removalWeighted / 10 * 25, 25);
+
+    // Pilar 3 — Protección de piezas clave
+    const PROTECTION_ALL = ["lightning greaves","swiftfoot boots","heroic intervention",
+      "teferi's protection","flawless maneuver","deflecting swat","fierce guardianship",
+      "boseiju","cavern of souls","diplomatic immunity","darksteel plate","indestructibility",
+      "curator's ward","shielded by faith","welding jar","padeem","commander's plate",
+      "robe of stars","whispersilk cloak","greaves","boots","no mercy","ghostly prison",
+      "propaganda","windborn muse","energy field","ghostly prison","sphere of safety"];
+    const protAllCount = countIn(PROTECTION_ALL);
+    const p3 = Math.min(protAllCount / 4 * 20, 20);
+
+    // Pilar 4 — Recursión y plan B (capacidad de rehacerse tras disruption)
+    const RECOVERY_ALL = ["victimize","dread return","animate dead","reanimate","unearth",
+      "bloodline bidding","living death","beacon of unrest","zombify","phyrexian reclamation",
+      "academy ruins","eternal witness","regrowth","noxious revival","reconstruction",
+      "welding jar","goblin welder","goblin engineer","emry, lurker","oversold cemetery",
+      "late to dinner","persist","undying","postmortem lunge","rescue from the underworld",
+      "pull from eternity","shadow of mortality","replenish","starfield of nyx",
+      "hall of heliod's generosity","sun titan","karmic guide","reveillark","nether traitor"];
+    const recovAllCount = countIn(RECOVERY_ALL);
+    const p4 = Math.min(recovAllCount / 4 * 18, 18);
+
+    // Pilar 5 — Velocidad de cierre (múltiples finishers / redundancia)
+    const CLOSERS = ["aetherflux reservoir","thassa's oracle","laboratory maniac","jace, wielder",
+      "approach of the second sun","felidar sovereign","biorhythm","revel in riches",
+      "hellkite tyrant","torment of hailfire","exsanguinate","debt to the deathless",
+      "brain freeze","blue sun's zenith","stroke of genius","insidious dreams",
+      "direct currents","karn's sylex","worldgorger dragon","tendrils of agony",
+      "grape shot","grapeshot","empty the warrens","mind's desire","storm"];
+    const closerCount = countIn(CLOSERS);
+    const totalWincons = Math.min(comboLabels.length + closerCount, 5);
+    const p5 = Math.min(totalWincons / 3 * 12, 12);
+
+    const resilience = Math.round(Math.min(p1 + p2 + p3 + p4 + p5, 100));
 
     // ── BRACKET ──────────────────────────────────────────────────────────────
     const reasons = [];
@@ -1383,6 +1533,47 @@
       "cEDH — máximo nivel competitivo. Combos turno 3, tutores masivos, fast mana.",
     ];
 
+    // ── TIER DEL DECK ─────────────────────────────────────────────────────────
+    // Combinación ponderada de los 4 parámetros principales:
+    //   Poder        40% — qué tan fuerte es la estrategia
+    //   Consistencia 25% — qué tan seguido ejecuta su plan
+    //   Resistencia  20% — capacidad de aguantar y cerrar
+    //   Sinergia     15% — cohesión interna del deck
+    //
+    // La sinergia local (synergyScore 0-20) se normaliza a 0-100
+    // y se incorpora como 4to parámetro
+    const synergyNorm = Math.round((synergyScore / 20) * 100);
+    const compositeScore = Math.round(
+      powerScore * 0.40 +
+      consistency * 0.25 +
+      resilience  * 0.20 +
+      synergyNorm * 0.15
+    );
+
+    // Tier basado en composite score + ajustes por bracket
+    let tier, tierLabel, tierColor, tierDesc;
+    if (bracket >= 5 || compositeScore >= 88) {
+      tier = "S"; tierColor = "#e8c84a";
+      tierLabel = "Tier S — Élite";
+      tierDesc  = "Deck de nivel cEDH o extremadamente optimizado. Capaz de ganar en los primeros turnos de forma consistente.";
+    } else if (bracket === 4 || compositeScore >= 72) {
+      tier = "A"; tierColor = "#4fc87a";
+      tierLabel = "Tier A — Optimizado";
+      tierDesc  = "Deck altamente competitivo con combos accesibles, tutores o fast mana. Domina mesas de pod casual avanzado.";
+    } else if (bracket === 3 || compositeScore >= 55) {
+      tier = "B"; tierColor = "#3a9fd8";
+      tierLabel = "Tier B — Sólido";
+      tierDesc  = "Deck bien construido con sinergias claras y un plan de victoria consistente. Competitivo en mesas casuales.";
+    } else if (bracket === 2 || compositeScore >= 38) {
+      tier = "C"; tierColor = "#c8a84a";
+      tierLabel = "Tier C — Funcional";
+      tierDesc  = "Deck funcional con motores básicos. Puede ganar partidas pero le falta consistencia o potencia de cierre.";
+    } else {
+      tier = "D"; tierColor = "#888";
+      tierLabel = "Tier D — Introductorio";
+      tierDesc  = "Deck en desarrollo. Buen punto de partida para nuevos jugadores, con espacio para crecer.";
+    }
+
     return {
       commander: commander || "No especificado",
       bracket,
@@ -1391,6 +1582,9 @@
       power_score: powerScore,
       consistency_score: consistency,
       resilience_score: resilience,
+      synergy_score: synergyNorm,
+      composite_score: compositeScore,
+      tier, tier_label: tierLabel, tier_color: tierColor, tier_desc: tierDesc,
       ramp_count: rampCount,
       removal_count: removal,
       draw_count: drawCount,
@@ -1422,7 +1616,7 @@
     document.getElementById("results").style.display = "none";
     document.getElementById("edhrec-display").innerHTML = "";
 
-    // ── PASO 1: Análisis local SIEMPRE (scores correctos, instantáneo) ──────
+    // ── PASO 1: Análisis local (instantáneo, siempre correcto) ───────────────
     let data;
     try {
       data = localAnalyze(decklist, commander);
@@ -1432,32 +1626,10 @@
       return;
     }
 
-    // ── PASO 2: Mostrar resultados base inmediatamente ───────────────────────
-    setLoading(false);
-    renderResults(data);
-
-    // ── PASO 3: Enriquecer con backend (precios + EDHREC) en background ──────
-    enrichWithBackend(decklist, commander, data);
-  }
-
-  async function enrichWithBackend(decklist, commander, localData) {
-    // Mostrar placeholder EDHREC mientras carga
-    const edhrecDiv = document.getElementById("edhrec-display");
-    if (commander) {
-      edhrecDiv.innerHTML = `
-        <div class="edhrec-panel">
-          <div class="edhrec-loading">
-            <span style="color:#3a9fd8;font-family:'Cinzel',serif;letter-spacing:0.1em;font-size:11px;">⬡ EDHREC</span>
-            <div style="margin-top:8px;color:var(--text-dim)">Consultando sinergia para <strong style="color:var(--text)">${escHtml(commander)}</strong>...</div>
-          </div>
-        </div>
-      `;
-    }
-
+    // ── PASO 2: Backend con EDHREC + precios — TODO espera al spinner ────────
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 35000);
-
+      const timeoutId = setTimeout(() => controller.abort(), 40000);
       const resp = await fetch(API_URL + "/analyze/edhrec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1467,28 +1639,26 @@
       clearTimeout(timeoutId);
 
       if (resp.ok) {
-        const backendData = await resp.json();
-
-        // Actualizar precios
-        if (backendData.total_market_value_usd != null) {
-          localData.total_market_value_usd = backendData.total_market_value_usd;
-          localData.top_expensive_cards    = backendData.top_expensive_cards || [];
-          renderMarket(localData);
+        const bd = await resp.json();
+        // Precios del backend
+        if (bd.total_market_value_usd != null) {
+          data.total_market_value_usd = bd.total_market_value_usd;
+          data.top_expensive_cards    = bd.top_expensive_cards || [];
         }
-
-        // Renderizar sección EDHREC
-        if (backendData.edhrec) {
-          renderEdhrec(backendData.edhrec, commander);
-        } else if (commander) {
-          edhrecDiv.innerHTML = `<div class="edhrec-panel"><div class="edhrec-error">EDHREC no disponible para este comandante.</div></div>`;
+        // EDHREC synergy data
+        if (bd.edhrec && bd.edhrec.score !== null) {
+          data.edhrec = bd.edhrec;
         }
-      } else {
-        if (commander) edhrecDiv.innerHTML = "";
       }
     } catch (e) {
+      // Backend offline o timeout — mostramos igual sin precios/EDHREC
       console.info("Backend no disponible:", e.message);
-      if (commander) edhrecDiv.innerHTML = "";
     }
+
+    // ── PASO 3: Mostrar todo junto ───────────────────────────────────────────
+    setLoading(false);
+    renderResults(data);
+    if (data.edhrec) renderEdhrec(data.edhrec, commander);
   }
 
   function synBadge(s) {
@@ -1600,9 +1770,56 @@
     }
   }
 
+  function renderTier(d) {
+    const el = document.getElementById("tier-display");
+    if (!el || !d.tier) return;
+
+    const color = d.tier_color || "#888";
+    const barColor = (label, score) => {
+      if (score >= 70) return "#4fc87a";
+      if (score >= 45) return "#c8a84a";
+      return "#e05555";
+    };
+
+    const bars = [
+      { label: "Poder",       val: d.power_score,       w: d.power_score },
+      { label: "Consistencia",val: d.consistency_score, w: d.consistency_score },
+      { label: "Resistencia", val: d.resilience_score,  w: d.resilience_score },
+      { label: "Sinergia",    val: d.synergy_score||0,  w: d.synergy_score||0 },
+    ];
+
+    el.innerHTML = `
+      <div class="tier-panel" style="border-color:${color}22;">
+        <div class="tier-badge" style="color:${color};background:${color}18;border-color:${color};">${d.tier}</div>
+        <div class="tier-info">
+          <div class="tier-name" style="color:${color};">${escHtml(d.tier_label)}</div>
+          <div class="tier-desc">${escHtml(d.tier_desc)}</div>
+        </div>
+        <div class="tier-composite">
+          <div class="tier-composite-val">${d.composite_score}</div>
+          <div class="tier-composite-label">SCORE<br>COMPUESTO</div>
+        </div>
+        <div class="tier-bars">
+          ${bars.map(b => `
+            <div class="tier-bar-row">
+              <span class="tier-bar-label">${b.label}</span>
+              <div class="tier-bar-track">
+                <div class="tier-bar-fill" style="width:${b.w}%;background:${barColor(b.label,b.val)};"></div>
+              </div>
+              <span class="tier-bar-val">${b.val}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
   function renderResults(d) {
     const results = document.getElementById("results");
     results.style.display = "block";
+
+    // Tier
+    renderTier(d);
 
     // Commander
     const cmdPanel = document.getElementById("commander-display");
@@ -1656,6 +1873,12 @@
         <div class="stat-value">${d.resilience_score}<span class="stat-suffix">/100</span></div>
         <div class="stat-desc">${resilDesc(d.resilience_score)}</div>
         <div class="score-bar"><div class="score-fill" style="width:${d.resilience_score}%"></div></div>
+      </div>
+      <div class="stat-card" style="border-top-color:#a855f7;">
+        <div class="stat-label">Sinergia</div>
+        <div class="stat-value" style="color:#a855f7;">${d.synergy_score||0}<span class="stat-suffix">/100</span></div>
+        <div class="stat-desc">${synergyDesc(d.synergy_score||0)}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${d.synergy_score||0}%;background:#a855f7;"></div></div>
       </div>
     `;
 
@@ -1794,6 +2017,14 @@
     if (s >= 55) return "Relativamente predecible";
     if (s >= 35) return "Algo variable";
     return "Dependiente del mazo inicial";
+  }
+
+  function synergyDesc(s) {
+    if (s >= 75) return "Arquetipo muy coherente";
+    if (s >= 55) return "Buena cohesión interna";
+    if (s >= 35) return "Sinergias moderadas";
+    if (s >= 15) return "Pocas sinergias detectadas";
+    return "Sin arquetipo definido";
   }
 
   function resilDesc(s) {
