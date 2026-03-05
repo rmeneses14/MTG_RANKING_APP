@@ -786,17 +786,19 @@
 <script>
   const API_URL = "https://mtg-ranking-api.onrender.com";
 
-  // ─── ENGINE DE ANÁLISIS LOCAL — calibrado contra Edgar Markov (7.6–8 / Bracket 3) ──
+  // ─── ENGINE DE ANÁLISIS LOCAL — Calibrado con 2 benchmarks ──────────────────
   //
-  // Referencia de calibración:
-  //   Edgar Markov tribal aristocrats:
-  //   - Combo Exquisite Blood + Sanguine Bond (2 piezas, tutor-accesible)
-  //   - 2 tutores medios (Diabolic Intent + Diabolic Tutor)
-  //   - Mana base con lands lentas (Temples, Snarls, Basilicas)
-  //   - Poca interacción en stack (solo Silence)
-  //   - Draw moderado (Skullclamp, Welcoming Vampire, Twilight Prophet)
-  //   - Sinergia tribal alta, motores aristocrats fuertes
-  //   → Target: power 76–80 / 100 | Bracket 3
+  //  BENCHMARK A: Edgar Markov → 7.6–8 / Bracket 3
+  //    Combo Exquisite+Sanguine (accesible via tutores), 2 tutores T2/T3,
+  //    aristocrats engine sólido, mana base mixta, draw moderado
+  //    → target rawTotal ≈ 59–63 → power 76–80
+  //
+  //  BENCHMARK B: Lord of Pain → 7.0 / Bracket 2
+  //    0 tutores, 0 combos detectables, draw pasivo/punitivo,
+  //    ramp correcto, remoción sólida, sinergia pain/ping coherente
+  //    → target rawTotal ≈ 50–54 → power 69–72
+  //
+  //  Diferencia esperada: ~7–8 puntos entre ambos decks
 
   function localAnalyze(decklist, commander) {
     const lines = decklist.trim().split("\n").filter(l => l.trim() && !l.startsWith("//") && !l.startsWith("#"));
@@ -809,13 +811,11 @@
     const has = (n, list) => list.some(t => n.includes(t));
     const countIn = list => names.filter(n => has(n, list)).length;
 
-    // ── LISTAS DE CARTAS ────────────────────────────────────────────────────
-
-    // Fast mana (solo cEDH justifica bracket 5)
+    // ── FAST MANA (cEDH threshold) ──────────────────────────────────────────
     const FAST_MANA = ["black lotus","mox sapphire","mox ruby","mox jet","mox pearl","mox emerald",
       "mana crypt","mana vault","chrome mox","mox diamond","lotus petal","ancient tomb","grim monolith"];
 
-    // Combos de 2 cartas que ganan inmediatamente (bracket 4+)
+    // ── COMBOS INSTANT-WIN 2 cartas (bracket 4+) ────────────────────────────
     const INSTANT_WIN_COMBOS = [
       ["thassa's oracle","demonic consultation"], ["thassa's oracle","tainted pact"],
       ["thassa's oracle","jace, wielder"], ["kiki-jiki","pestermite"],
@@ -824,131 +824,173 @@
       ["dramatic reversal","isochron scepter"], ["basalt monolith","power artifact"],
       ["heliod, sun-crowned","walking ballista"], ["mikaeus","triskelion"],
       ["doomsday","thassa"], ["ad nauseam","angel's grace"],
+      ["worldgorger dragon","animate dead"], ["twin","ballista"],
     ];
 
-    // Combos conocidos de 2+ piezas (boost de poder, no necesariamente bracket 4)
+    // ── COMBOS CONOCIDOS MULTI-PIEZA (boost de poder calibrado) ────────────
+    // power: cuánto suman al rawTotal (calibrado: Edgar tiene ~14 de combos)
     const KNOWN_COMBO_PAIRS = [
-      { pieces: ["exquisite blood","sanguine bond"],         label: "Exquisite Blood + Sanguine Bond",   power: 14, bracket_push: 3 },
-      { pieces: ["exquisite blood","vito, thorn"],           label: "Exquisite Blood + Vito",             power: 12, bracket_push: 3 },
-      { pieces: ["exquisite blood","bolas's citadel"],       label: "Exquisite Blood + Citadel",          power: 10, bracket_push: 3 },
-      { pieces: ["altar of dementia","gravecrawler"],        label: "Altar + Gravecrawler loop",          power: 12, bracket_push: 3 },
-      { pieces: ["food chain","eternal scavenger"],          label: "Food Chain combo",                   power: 16, bracket_push: 4 },
-      { pieces: ["food chain","misthollow griffin"],         label: "Food Chain combo",                   power: 16, bracket_push: 4 },
-      { pieces: ["phyrexian altar","gravecrawler"],          label: "Phyrexian Altar + Gravecrawler",     power: 11, bracket_push: 3 },
-      { pieces: ["purphoros","token generator"],             label: "Purphoros ETB damage",               power:  7, bracket_push: 0 },
-      { pieces: ["cathars' crusade","token"],                label: "Cathars' Crusade + tokens",          power:  5, bracket_push: 0 },
-      { pieces: ["skullclamp","token"],                      label: "Skullclamp + token engine",          power:  6, bracket_push: 0 },
-      { pieces: ["pitiless plunderer","phyrexian altar"],    label: "Plunderer + Altar engine",           power:  8, bracket_push: 0 },
-      { pieces: ["smothering tithe","wheel of fortune"],     label: "Tithe + Wheel",                      power:  9, bracket_push: 0 },
-      { pieces: ["rhystic study","wheel"],                   label: "Rhystic + Wheel",                    power:  7, bracket_push: 0 },
+      // Drain / lifegain loops
+      { pieces: ["exquisite blood","sanguine bond"],       label: "Exquisite Blood + Sanguine Bond",    power: 14, bracket_push: 3 },
+      { pieces: ["exquisite blood","vito, thorn"],         label: "Exquisite Blood + Vito",              power: 12, bracket_push: 3 },
+      { pieces: ["exquisite blood","bolas's citadel"],     label: "Exquisite Blood + Citadel",           power: 10, bracket_push: 3 },
+      // Sacrifice loops
+      { pieces: ["altar of dementia","gravecrawler"],      label: "Altar of Dementia + Gravecrawler",    power: 12, bracket_push: 3 },
+      { pieces: ["phyrexian altar","gravecrawler"],        label: "Phyrexian Altar + Gravecrawler",      power: 11, bracket_push: 3 },
+      { pieces: ["ashnod's altar","gravecrawler"],         label: "Ashnod's Altar + Gravecrawler",       power: 10, bracket_push: 3 },
+      // Food chain
+      { pieces: ["food chain","eternal scavenger"],        label: "Food Chain combo",                    power: 16, bracket_push: 4 },
+      { pieces: ["food chain","misthollow griffin"],       label: "Food Chain combo",                    power: 16, bracket_push: 4 },
+      // Pain/ping synergies — NUEVO para Lord of Pain archetype
+      { pieces: ["wound reflection","exsanguinate"],       label: "Wound Reflection + Exsanguinate",     power:  9, bracket_push: 0 },
+      { pieces: ["wound reflection","mogis"],              label: "Wound Reflection + Mogis",            power:  7, bracket_push: 0 },
+      { pieces: ["wound reflection","underworld dreams"],  label: "Wound Reflection + Symmetrical draw", power:  8, bracket_push: 0 },
+      { pieces: ["tainted remedy","lifelink"],             label: "Tainted Remedy + lifelink",           power:  7, bracket_push: 0 },
+      { pieces: ["tainted remedy","exsanguinate"],         label: "Tainted Remedy + life drain",         power:  8, bracket_push: 0 },
+      { pieces: ["stuffy doll","pariah's shield"],         label: "Stuffy Doll + Pariah's Shield",       power:  9, bracket_push: 0 },
+      { pieces: ["stuffy doll","blasphemous act"],         label: "Stuffy Doll + Blasphemous Act",       power:  9, bracket_push: 0 },
+      { pieces: ["brash taunter","blasphemous act"],       label: "Brash Taunter + Blasphemous Act",     power:  8, bracket_push: 0 },
+      { pieces: ["master of cruelties","rakdos, lord"],    label: "Master of Cruelties + Rakdos",        power:  8, bracket_push: 0 },
+      // Value engines
+      { pieces: ["pitiless plunderer","phyrexian altar"],  label: "Plunderer + Altar engine",            power:  8, bracket_push: 0 },
+      { pieces: ["smothering tithe","wheel of fortune"],   label: "Tithe + Wheel",                       power:  9, bracket_push: 0 },
+      { pieces: ["cathars' crusade","token"],              label: "Cathars' Crusade + tokens",           power:  5, bracket_push: 0 },
+      { pieces: ["skullclamp","token"],                    label: "Skullclamp + token engine",           power:  6, bracket_push: 0 },
+      { pieces: ["purphoros","token generator"],           label: "Purphoros ETB damage",                power:  7, bracket_push: 0 },
     ];
 
-    // Tutores — diferenciados por eficiencia
+    // ── TUTORES (T1 más eficientes, T3 menos) ──────────────────────────────
     const TUTORS_T1 = ["vampiric tutor","imperial seal","mystical tutor","worldly tutor","enlightened tutor",
-      "demonic consultation","tainted pact","personal tutor"];
+      "demonic consultation","tainted pact","personal tutor","vampiric"];
     const TUTORS_T2 = ["demonic tutor","diabolic intent","grim tutor","beseech the queen",
-      "cruel tutor","dark petition","diabolic revelation","mastermind's acquisition"];
-    const TUTORS_T3 = ["diabolic tutor","diabolic tutor","scheming symmetry","wishclaw talisman",
-      "fabricate","tinker","reshape","transmute artifact","trophy mage","trinket mage",
-      "ranger of eos","recruiter of the guard","chord of calling","finale of devastation"];
+      "cruel tutor","dark petition","mastermind's acquisition","varragoth","wishclaw talisman"];
+    const TUTORS_T3 = ["scheming symmetry","fabricate","tinker","reshape","transmute artifact",
+      "trophy mage","trinket mage","ranger of eos","recruiter of the guard",
+      "chord of calling","finale of devastation","diabolic tutor"];
 
-    // Ramp — diferenciado por velocidad
+    // ── RAMP (fast = turno 1-2, med = artefactos 2 mana, slow = sorceries) ──
     const RAMP_FAST = ["sol ring","mana crypt","arcane signet","mox diamond","chrome mox",
-      "jeweled lotus","lotus petal","dark ritual","cabal ritual","pyretic ritual"];
+      "jeweled lotus","lotus petal","dark ritual","cabal ritual","pyretic ritual","fellwar stone"];
     const RAMP_MED  = ["boros signet","orzhov signet","dimir signet","gruul signet","simic signet",
       "azorius signet","rakdos signet","izzet signet","selesnya signet","golgari signet",
       "talisman of hierarchy","talisman of indulgence","talisman of dominance","talisman of unity",
       "talisman of conviction","talisman of creativity","talisman of curiosity","talisman of impulse",
       "talisman of resilience","talisman of progress","mind stone","thought vessel","commander's sphere",
-      "wayfarer's bauble","patchwork banner","heraldic banner"];
+      "wayfarer's bauble","patchwork banner","heraldic banner","worn powerstone"];
     const RAMP_SLOW = ["cultivate","kodama's reach","farseek","rampant growth","three visits",
-      "nature's lore","skyshroud claim","explosive vegetation","circuitous route",
-      "migration path","boundless realms","blighted woodland"];
+      "nature's lore","skyshroud claim","explosive vegetation","circuitous route","migration path"];
 
-    // Interacción en stack (conterspells, respuestas instantáneas)
+    // ── INTERACCIÓN EN STACK ────────────────────────────────────────────────
     const STACK_INTERACTION = ["counterspell","force of will","force of negation","pact of negation",
       "mana drain","swan song","flusterstorm","mental misstep","negate","arcane denial",
-      "fierce guardianship","deflecting swat","deadly rollick","free-spell counterspell",
-      "cyclonic rift","rapid hybridization","beast within","chaos warp","silence","orim's chant"];
+      "fierce guardianship","deflecting swat","deadly rollick","cyclonic rift",
+      "rapid hybridization","beast within","chaos warp","silence","orim's chant","rakdos charm"];
 
-    // Remoción eficiente
+    // ── REMOCIÓN ────────────────────────────────────────────────────────────
     const REMOVAL_EFFICIENT = ["swords to plowshares","path to exile","fatal push","abrupt decay",
       "assassin's trophy","generous gift","beast within","chaos warp","cyclonic rift",
       "rapid hybridization","deadly rollick","fierce guardianship","anguished unmaking",
-      "vindicate","vanishing verse","vanishing verse","hero's downfall","return to dust",
-      "utter end","swords to plowshares","damn","austere command","toxic deluge","damnation",
-      "wrath of god","farewell","wave of vitriol","blasphemous act"];
+      "vindicate","vanishing verse","hero's downfall","return to dust","utter end",
+      "damn","austere command","toxic deluge","damnation","wrath of god","farewell",
+      "blasphemous act","black sun's zenith","decree of pain","bedevil","infernal grasp",
+      "feed the swarm","rakdos charm","massacre girl","feed the swarm","bedevil"];
 
-    // Draw eficiente
+    // ── DRAW — diferenciado por calidad ─────────────────────────────────────
     const DRAW_T1 = ["necropotence","rhystic study","mystic remora","sylvan library",
       "phyrexian arena","esper sentinel","smothering tithe","consecrated sphinx",
-      "wheel of fortune","windfall","timetwister","dark confidant","insight"];
+      "wheel of fortune","windfall","timetwister","dark confidant"];
     const DRAW_T2 = ["skullclamp","night's whisper","sign in blood","painful truths",
       "read the bones","brainstorm","ponder","preordain","welcoming vampire",
-      "twilight prophet","edric","sylvan library","phyrexian arena"];
-    const DRAW_T3 = ["divination","harmonize","pull from tomorrow","blue sun's zenith",
-      "mind's eye","staff of nin","howling mine","font of mythos","dusk legion zealot"];
+      "twilight prophet","edric","underworld dreams","spiteful visions","fate unraveler",
+      "kederekt parasite","stormfist crusader","theater of horrors","florian, voldaren",
+      "tectonic giant","valgavoth","light up the stage","decree of pain"];
+    const DRAW_T3 = ["divination","harmonize","mind's eye","staff of nin","howling mine",
+      "font of mythos","dusk legion zealot","distant melody","beast whisperer",
+      "dead reckoning","phyrexian reclamation"];
 
-    // Protección de piezas clave
+    // ── PROTECCIÓN ──────────────────────────────────────────────────────────
     const PROTECTION = ["lightning greaves","swiftfoot boots","shroud","hexproof",
       "boots","greaves","diplomatic immunity","sylvan safekeeper","boseiju",
-      "cavern of souls","teferi's protection","flawless maneuver"];
+      "cavern of souls","teferi's protection","flawless maneuver","no mercy"];
 
-    // Recuperación / reanimación
+    // ── RECUPERACIÓN ────────────────────────────────────────────────────────
     const RECOVERY = ["victimize","dread return","animate dead","reanimate","unearth",
       "bloodline bidding","living death","beacon of unrest","zombify","journey to eternity",
-      "oversold cemetery","immortal servitude","late to dinner"];
+      "oversold cemetery","immortal servitude","phyrexian reclamation","late to dinner"];
 
-    // Extra turns
+    // ── EXTRA TURNS ─────────────────────────────────────────────────────────
     const EXTRA_TURNS = ["time warp","temporal manipulation","capture of jingzhou","part the waterveil",
       "temporal mastery","temporal trespass","expropriate","nexus of fate","beacon of tomorrows",
       "time stretch","emrakul, the promised end","seize the day"];
 
-    // Mass land denial
+    // ── LAND DENIAL ─────────────────────────────────────────────────────────
     const LAND_DENY = ["armageddon","ravages of war","ruination","sunder","winter orb",
       "static orb","blood moon","magus of the moon","back to basics","null rod",
       "stony silence","wave of vitriol","obliterate","jokulhaups","devastation","global ruin"];
 
-    // ── CONTEOS ────────────────────────────────────────────────────────────
+    // ── ARQUETIPOS DE SINERGIA ──────────────────────────────────────────────
+    const TRIBAL_LORDS = ["legion lieutenant","lord of the","chief of the","metallic mimic",
+      "adaptive automaton","obelisk of urd","door of destinies","clavileño","roaming throne",
+      "cordial vampire","patron of the vein","herald's horn","kindred discovery","vanquisher's banner"];
 
-    const t1Tutors   = countIn(TUTORS_T1);
-    const t2Tutors   = countIn(TUTORS_T2);
-    const t3Tutors   = countIn(TUTORS_T3);
+    const ARISTOCRAT_ENGINES = ["blood artist","cruel celebrant","vindictive vampire","falkenrath noble",
+      "vengeful bloodwitch","purphoros","zulaport cutthroat","nadier's nightblade","viscera seer",
+      "phyrexian altar","pitiless plunderer","skullclamp","ashnod's altar","syr konrad",
+      "bartolomé","elenda","yahenni","indulgent aristocrat","butcher of malakir"];
+
+    const PAIN_PING_ENGINES = ["mogis, god","wound reflection","underworld dreams","fate unraveler",
+      "spiteful visions","kederekt parasite","tainted remedy","kaervek","harsh mentor",
+      "bloodchief ascension","the lord of pain","master of cruelties","rampaging ferocidon",
+      "chandra's incinerator","nightshade harvester","vial smasher","stuffy doll","brash taunter",
+      "starscape cleric","gray merchant","exsanguinate","syr konrad"];
+
+    const REANIMATOR_PIECES = ["dread return","victimize","animate dead","reanimate","bloodline bidding",
+      "living death","unearth","bloodghast","gravecrawler","reassembling skeleton","persistent constrictor"];
+
+    const SPELLSLINGER = ["guttersnipe","electrostatic field","firebrand archer","thermo-alchemist",
+      "kalamax","veyran","magmatic channeler","birgi","thousand-year storm"];
+
+    const TOKENS_ENGINE = ["anointed procession","parallel lives","doubling season","cathars' crusade",
+      "orah","edgar","charismatic conqueror","mavren fein","bloodline keeper","vampire nocturnus",
+      "captain's claws","skullclamp","skullclamp","intangible virtue"];
+
+    // ── CONTEOS ─────────────────────────────────────────────────────────────
+    const t1Tutors = countIn(TUTORS_T1);
+    const t2Tutors = countIn(TUTORS_T2);
+    const t3Tutors = countIn(TUTORS_T3);
     const tutorCount = t1Tutors + t2Tutors + t3Tutors;
-    const tutorScore = t1Tutors * 3.5 + t2Tutors * 2.5 + t3Tutors * 1.5; // ponderado por eficiencia
+    const tutorScore = t1Tutors * 3.5 + t2Tutors * 2.5 + t3Tutors * 1.5;
 
     const fastRamp = countIn(RAMP_FAST);
     const medRamp  = countIn(RAMP_MED);
     const slowRamp = countIn(RAMP_SLOW);
     const rampCount = fastRamp + medRamp + slowRamp;
-    const rampScore = fastRamp * 3 + medRamp * 1.8 + slowRamp * 1;
+    const rampScore = fastRamp * 3.0 + medRamp * 1.8 + slowRamp * 1.0;
 
-    const stackInt  = countIn(STACK_INTERACTION);
-    const removal   = countIn(REMOVAL_EFFICIENT);
-    const interactionScore = stackInt * 2.5 + removal * 1.5;
+    const stackInt = countIn(STACK_INTERACTION);
+    const removal  = countIn(REMOVAL_EFFICIENT);
+    const interactionScore = stackInt * 2.2 + removal * 1.3;
 
     const t1Draw = countIn(DRAW_T1);
     const t2Draw = countIn(DRAW_T2);
     const t3Draw = countIn(DRAW_T3);
     const drawCount = t1Draw + t2Draw + t3Draw;
-    const drawScore = t1Draw * 3.5 + t2Draw * 2 + t3Draw * 1;
+    const drawScore = t1Draw * 3.5 + t2Draw * 1.8 + t3Draw * 0.9;
 
-    const protCount   = countIn(PROTECTION);
-    const recovCount  = countIn(RECOVERY);
+    const protCount  = countIn(PROTECTION);
+    const recovCount = countIn(RECOVERY);
     const hasFastMana = names.some(n => has(n, FAST_MANA));
     const hasXT       = names.some(n => has(n, EXTRA_TURNS));
     const hasLD       = names.some(n => has(n, LAND_DENY));
 
-    // ── COMBOS CONOCIDOS ──────────────────────────────────────────────────
-
+    // ── DETECCIÓN DE COMBOS ──────────────────────────────────────────────────
     const foundCombos = [];
     let comboPowerBonus = 0;
     let comboMaxBracket = 0;
-    let comboLabels = [];
+    const comboLabels = [];
 
     for (const cp of KNOWN_COMBO_PAIRS) {
-      const present = cp.pieces.every(piece => names.some(n => n.includes(piece)));
-      if (present) {
+      if (cp.pieces.every(piece => names.some(n => n.includes(piece)))) {
         foundCombos.push(...cp.pieces);
         comboPowerBonus += cp.power;
         comboMaxBracket = Math.max(comboMaxBracket, cp.bracket_push);
@@ -956,7 +998,6 @@
       }
     }
 
-    // Combo de 2 cartas instant-win
     let hasInstantWinCombo = false;
     for (const pair of INSTANT_WIN_COMBOS) {
       if (pair.every(piece => names.some(n => n.includes(piece)))) {
@@ -968,116 +1009,128 @@
       }
     }
 
-    // ── MANA BASE ─────────────────────────────────────────────────────────
-
+    // ── MANA BASE ────────────────────────────────────────────────────────────
     const landCards = cards.filter(c => {
       const n = c.name.toLowerCase();
       return /\b(island|mountain|forest|plains|swamp)\b/.test(n) ||
         ["command tower","exotic orchard","reflecting pool","city of brass","mana confluence",
          "pathway","triome","shock","fetch","filter","pain","check","battle","snarl",
-         "basilica","refuge","gain","temple","bounce","tap"].some(t => n.includes(t)) ||
+         "basilica","refuge","gain","temple","bounce","tap","cairns","cliffs","summit",
+         "ridge","marsh","bog","gorge","knoll","clinic","palace"].some(t => n.includes(t)) ||
         (n.includes("land") && !n.includes("landfall") && !n.includes("land's edge"));
     });
     const landCount = landCards.reduce((s, c) => s + c.quantity, 0);
 
-    // Penalizar tierras lentas (entran tapeadas)
-    const SLOW_LANDS = ["temple of","basilica","snarl","foreboding","shineshadow","tainted",
-      "bounce land","refuge","gain land","orzhov basilica","boros garrison","dimir aqueduct"];
-    const slowLandCount = landCards.filter(c => SLOW_LANDS.some(t => c.name.toLowerCase().includes(t))).length;
+    const SLOW_LANDS = ["temple of","temple of the","basilica","snarl","foreboding","shineshadow",
+      "tainted","garrison","aqueduct","refuge","bounce land","evolving wilds","terramorphic",
+      "geothermal bog","smoldering marsh","spinerock knoll","leechridden","witch's clinic"];
+    const slowLandCount = landCards.filter(c =>
+      SLOW_LANDS.some(t => c.name.toLowerCase().includes(t))
+    ).length;
 
-    // Tierras buenas (entran sin tapping)
     const GOOD_LANDS = ["command tower","exotic orchard","godless shrine","clifftop retreat",
       "isolated chapel","battlefield forge","rugged prairie","cavern of souls",
       "path of ancestry","unclaimed territory","secluded courtyard","vault of the archangel",
-      "rouge's passage","bojuka bog","canyon slough"];
-    const goodLandCount = landCards.filter(c => GOOD_LANDS.some(t => c.name.toLowerCase().includes(t))).length;
+      "blackcleave cliffs","dragonskull summit","graven cairns","shadowblood ridge",
+      "sulfurous springs","canyon slough","shivan gorge","fire nation palace"];
+    const goodLandCount = landCards.filter(c =>
+      GOOD_LANDS.some(t => c.name.toLowerCase().includes(t))
+    ).length;
 
-    // Score mana base: 0–20
-    let manaBaseScore = 10; // base
+    let manaBaseScore = 10;
     if (hasFastMana) manaBaseScore += 6;
     manaBaseScore += Math.min(fastRamp * 1.5, 5);
-    manaBaseScore -= Math.min(slowLandCount * 1.2, 6); // penalizar lands lentas
+    manaBaseScore -= Math.min(slowLandCount * 1.0, 5);
     manaBaseScore += Math.min(goodLandCount * 0.4, 3);
     if (landCount < 33) manaBaseScore -= 3;
     if (landCount >= 36 && landCount <= 38) manaBaseScore += 1;
     manaBaseScore = Math.max(0, Math.min(manaBaseScore, 20));
 
-    // ── SINERGIA DEL DECK ─────────────────────────────────────────────────
-    // Detectar arquetipos y bonificar coherencia interna
+    // ── SINERGIA (arquetipos) ─────────────────────────────────────────────────
+    const tribalCount     = countIn(TRIBAL_LORDS);
+    const aristocratCount = countIn(ARISTOCRAT_ENGINES);
+    const painCount       = countIn(PAIN_PING_ENGINES);
+    const reanimCount     = countIn(REANIMATOR_PIECES);
+    const spellslingerCnt = countIn(SPELLSLINGER);
+    const tokensCnt       = countIn(TOKENS_ENGINE);
 
-    const TRIBAL_LORDS = ["legion lieutenant","lord of the","chief of the","metallic mimic",
-      "adaptive automaton","anthem","glory-bound","obelisk of urd","door of destinies",
-      "clavileño","roaming throne","cordial vampire","patron of the vein"];
-    const ARISTOCRAT_ENGINES = ["blood artist","cruel celebrant","vindictive vampire","falkenrath noble",
-      "vengeful bloodwitch","purphoros","zulaport cutthroat","nadier's nightblade",
-      "viscera seer","phyrexian altar","pitiless plunderer","skullclamp","ashnod's altar"];
-    const REANIMATOR_PIECES = ["dread return","victimize","animate dead","reanimate","bloodline bidding",
-      "living death","unearth","bloodghast","gravecrawler","reassembling skeleton"];
-
-    const tribalLordCount   = countIn(TRIBAL_LORDS);
-    const aristocratCount   = countIn(ARISTOCRAT_ENGINES);
-    const reanimCount       = countIn(REANIMATOR_PIECES);
-
-    // Score de sinergia: 0–20
+    // Score máx por arquetipo: 8 puntos cada uno (calibrado)
     let synergyScore = 0;
-    synergyScore += Math.min(tribalLordCount * 2, 8);
-    synergyScore += Math.min(aristocratCount * 1.5, 9);
-    synergyScore += Math.min(reanimCount * 1, 5);
-    // Bonus por coherencia: si tiene 3+ arquetipos funcionales
-    const activeArchetypes = [tribalLordCount >= 2, aristocratCount >= 3, reanimCount >= 2].filter(Boolean).length;
-    if (activeArchetypes >= 2) synergyScore += 4;
+    synergyScore += Math.min(tribalCount * 2.0, 8);
+    synergyScore += Math.min(aristocratCount * 1.4, 8);
+    synergyScore += Math.min(painCount * 1.3, 8);     // ← Lord of Pain archetype
+    synergyScore += Math.min(reanimCount * 1.2, 5);
+    synergyScore += Math.min(spellslingerCnt * 1.5, 5);
+    synergyScore += Math.min(tokensCnt * 1.2, 5);
+
+    // Bonus coherencia: múltiples arquetipos funcionando juntos
+    const archetypes = [
+      tribalCount >= 3, aristocratCount >= 3, painCount >= 4,
+      reanimCount >= 2, spellslingerCnt >= 2, tokensCnt >= 2
+    ];
+    const activeArchetypes = archetypes.filter(Boolean).length;
+    if (activeArchetypes >= 2) synergyScore += 5;
+    if (activeArchetypes >= 3) synergyScore += 3;
     synergyScore = Math.min(synergyScore, 20);
 
-    // ── PODER GLOBAL (escala 0–100) ───────────────────────────────────────
-    // Pesos calibrados contra benchmark Edgar (target: 76–80)
+    // ── PODER GLOBAL (0–100) ──────────────────────────────────────────────────
     //
-    //  Categoría          | Peso máx | Edgar score estimado
-    //  Tutores            |    20    |   ~8  (2 tutores T2/T3, sin T1)
-    //  Ramp               |    15    |   ~9  (Sol Ring + signets + baubles)
-    //  Draw               |    15    |   ~8  (Skullclamp, Welcoming, Prophet)
-    //  Combos conocidos   |    20    |   14  (Exquisite+Sanguine+Vito = ~14)
-    //  Interacción        |    10    |   ~4  (solo Silence + remoción básica)
-    //  Mana base          |    10    |   ~7  (mix buena/lenta)
-    //  Sinergia           |    10    |   ~9  (tribal aristocrats muy coherente)
-    //  Total Edgar        |   100    |  ~59  → normalizado → ~78
+    // Pesos máx calibrados con 2 benchmarks:
+    //
+    //  Categoría       | Máx | Edgar  | Lord of Pain
+    //  Tutores         |  20 |  ~8    |  ~0
+    //  Ramp            |  15 |  ~9    |  ~9
+    //  Draw            |  15 |  ~8    |  ~7
+    //  Combos          |  18 |  ~14   |  ~9  (Stuffy+Act, Brash+Act, Wound+Exs)
+    //  Interacción     |  10 |  ~4    |  ~6
+    //  Mana base       |  10 |  ~7    |  ~6
+    //  Sinergia        |  12 |  ~10   |  ~8
+    //  Total           | 100 |  ~60   |  ~45
+    //                                 → Edgar ~78, Lord of Pain ~70
+    //
+    // rawTotal_max ≈ 100, calibrar: power = (raw / 100) * 100 * factor
+    // factor ajustado para que Edgar=60→78, LordPain=45→70
 
-    const rawTutor     = Math.min(tutorScore, 20);
-    const rawRamp      = Math.min(rampScore, 15);
-    const rawDraw      = Math.min(drawScore, 15);
-    const rawCombo     = Math.min(comboPowerBonus, 20);
-    const rawInteract  = Math.min(interactionScore, 10);
-    const rawMana      = manaBaseScore / 20 * 10; // normalizar a /10
-    const rawSynergy   = synergyScore / 20 * 10;
+    const rawTutor    = Math.min(tutorScore, 20);
+    const rawRamp     = Math.min(rampScore, 15);
+    const rawDraw     = Math.min(drawScore, 15);
+    const rawCombo    = Math.min(comboPowerBonus, 18);
+    const rawInteract = Math.min(interactionScore, 10);
+    const rawMana     = (manaBaseScore / 20) * 10;
+    const rawSynergy  = (synergyScore / 20) * 12;
 
     const rawTotal = rawTutor + rawRamp + rawDraw + rawCombo + rawInteract + rawMana + rawSynergy;
 
-    // Normalizar a escala 0–100 con curva calibrada
-    // rawTotal max teórico ≈ 90, Edgar ≈ 59 → queremos que 59 → 78
-    // Función: power = (raw / 90) * 100 * 1.15, capped 0–100
-    const powerScore = Math.round(Math.min((rawTotal / 90) * 115, 100));
+    // Curva calibrada: f(x) = 35 + (x / 80) * 65
+    // f(60)=84 era alto; ajustamos: f(x) = 30 + (x/100)*75
+    // Target: raw=60 → 75, raw=45 → 64
+    // f(x) = 28 + (x/100)*76  → f(60)=73.6, f(45)=62.2  (un poco bajo)
+    // f(x) = 32 + (x/85)*60   → f(60)=74.4, f(45)=63.8  ✓ más cerca
+    // Ajuste fino: Edgar 60→78, LordPain 45→70
+    // f(x) = 35 + (x/78)*55   → f(60)=77.3, f(45)=66.7  ✓
+    const powerScore = Math.round(Math.min(Math.max(35 + (rawTotal / 78) * 55, 10), 100));
 
-    // ── CONSISTENCIA (0–100) ─────────────────────────────────────────────
-    // ¿Qué tan seguido encuentra las piezas clave?
+    // ── CONSISTENCIA (0–100) ─────────────────────────────────────────────────
     const consistency = Math.round(Math.min(
-      (tutorScore / 15 * 30) +     // tutores = acceso a piezas
-      (drawScore  / 15 * 30) +     // draw = fluidez
-      (rampScore  / 12 * 20) +     // ramp = velocidad
-      (landCount >= 36 ? 20 : (landCount / 36) * 20) // tierras suficientes
+      (tutorScore / 15 * 30) +
+      (drawScore  / 14 * 28) +
+      (rampScore  / 12 * 20) +
+      (landCount >= 36 ? 22 : (landCount / 36) * 22)
     , 100));
 
-    // ── RESILIENCIA / CIERRE (0–100) ─────────────────────────────────────
-    // ¿Puede aguantar hate y cerrar igual?
+    // ── RESILIENCIA / CAPACIDAD DE CIERRE (0–100) ────────────────────────────
     const resilience = Math.round(Math.min(
-      (removal   / 8  * 25) +      // remoción
-      (stackInt  / 5  * 20) +      // interacción en stack
-      (recovCount / 4 * 20) +      // recuperación
-      (protCount / 4  * 15) +      // protección de piezas
-      (comboLabels.length > 0 ? Math.min(comboLabels.length * 6, 20) : 0) // múltiples wincons
+      (removal    / 8  * 24) +
+      (stackInt   / 5  * 20) +
+      (recovCount / 4  * 18) +
+      (protCount  / 4  * 14) +
+      (comboLabels.length > 0 ? Math.min(comboLabels.length * 5, 20) : 0) +
+      (activeArchetypes >= 2 ? 8 : 0)
     , 100));
 
-    // ── BRACKET ──────────────────────────────────────────────────────────
+    // ── BRACKET ──────────────────────────────────────────────────────────────
     const reasons = [];
-    let bracket = 1;
+    let bracket;
 
     if (hasFastMana && (hasInstantWinCombo || t1Tutors >= 3)) {
       bracket = 5;
@@ -1085,43 +1138,49 @@
     } else if (hasInstantWinCombo || (hasFastMana && tutorCount >= 3) || hasLD) {
       bracket = 4;
       if (hasInstantWinCombo) reasons.push("Combo de 2 cartas que gana de inmediato detectado");
-      if (hasFastMana) reasons.push("Fast mana presente (Mana Crypt, Mox, etc.)");
-      if (hasLD) reasons.push("⚠️ Mass land denial detectada (Armageddon, Blood Moon, etc.)");
-    } else if (comboMaxBracket >= 3 || tutorCount >= 2 || hasXT || (comboPowerBonus >= 10 && tutorCount >= 1)) {
+      if (hasFastMana) reasons.push("Fast mana presente (Mana Crypt, Mox Diamond, etc.)");
+      if (hasLD) reasons.push("⚠️ Mass land denial (Armageddon, Blood Moon, etc.)");
+    } else if (comboMaxBracket >= 3 || tutorCount >= 2 || hasXT || (comboPowerBonus >= 12 && tutorCount >= 1)) {
       bracket = 3;
-      if (comboLabels.length > 0) reasons.push(`Combos potentes: ${comboLabels.slice(0,2).join(", ")}`);
-      if (tutorCount >= 2) reasons.push(`${tutorCount} tutores presentes — acceso consistente a piezas clave`);
+      if (comboLabels.length > 0) reasons.push(`Combos potentes accesibles: ${comboLabels.slice(0,2).join(", ")}`);
+      if (tutorCount >= 2) reasons.push(`${tutorCount} tutores — acceso consistente a piezas clave`);
       if (hasXT) reasons.push("Extra turns detectadas");
-    } else if (comboPowerBonus >= 5 || rampCount >= 5 || drawCount >= 4) {
+    } else if (comboPowerBonus >= 6 || rampCount >= 5 || drawCount >= 4 || synergyScore >= 8) {
       bracket = 2;
-      reasons.push("Sinergias sólidas sin combos de alto impacto ni tutores potentes");
+      reasons.push("Sinergias sólidas y motores de valor, sin combos de alto impacto ni tutores");
     } else {
       bracket = 1;
-      reasons.push("Deck introductorio, sin sinergias complejas ni combos");
+      reasons.push("Deck introductorio, sin sinergias complejas ni combos detectables");
     }
 
-    if (reasons.length === 0) reasons.push("Deck con perfil casual, sin piezas de alto impacto detectadas");
-
-    // Motivos extra
-    if (activeArchetypes >= 2)
-      reasons.push(`Motor principal: ${[tribalLordCount>=2?"Tribal","Aristocrats",reanimCount>=2?"Reanimator":""].filter(Boolean).join(" + ")}`);
+    // Detalles adicionales
+    const archetypeNames = [
+      tribalCount >= 3 ? "Tribal" : null,
+      aristocratCount >= 3 ? "Aristocrats" : null,
+      painCount >= 4 ? "Pain/Ping" : null,
+      reanimCount >= 2 ? "Reanimador" : null,
+      spellslingerCnt >= 2 ? "Spellslinger" : null,
+      tokensCnt >= 2 ? "Tokens" : null,
+    ].filter(Boolean);
+    if (archetypeNames.length > 0)
+      reasons.push(`Motor principal: ${archetypeNames.join(" + ")}`);
     if (slowLandCount >= 4)
-      reasons.push(`⚠️ ${slowLandCount} tierras lentas (entran tapeadas) — penaliza velocidad`);
+      reasons.push(`⚠️ ${slowLandCount} tierras lentas — baja velocidad en los primeros turnos`);
     if (stackInt === 0)
-      reasons.push("⚠️ Sin interacción en stack — vulnerable a combo enemigo turno 3-4");
-    if (stackInt === 1)
-      reasons.push("Interacción en stack muy limitada (solo 1 pieza)");
+      reasons.push("⚠️ Sin interacción en stack — vulnerable a combos enemigos turno 3–4");
+    else if (stackInt === 1)
+      reasons.push("Interacción en stack limitada (1 pieza)");
 
-    // ── COMBO PIECES PARA MOSTRAR ────────────────────────────────────────
-    const uniqueComboPieces = [...new Set(foundCombos)].slice(0, 10).map(n =>
+    // ── SALIDA ────────────────────────────────────────────────────────────────
+    const uniqueComboPieces = [...new Set(foundCombos)].slice(0, 12).map(n =>
       n.split(' ').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ')
     );
 
     const BRACKET_DESC = [
       "",
       "Deck introductorio. Ideal para partidas con nuevos jugadores.",
-      "Sinergias básicas, sin combos complejos. Juego casual estándar.",
-      "Deck optimizado con combos potentes y tutores. Alta sinergia interna.",
+      "Sinergias sólidas y motores de valor sin combos complejos. Juego casual optimizado.",
+      "Deck con combos potentes y/o tutores consistentes. Presión constante.",
       "Deck muy optimizado. Combos rápidos, fast mana o land denial. Alta presión.",
       "cEDH — máximo nivel competitivo. Combos turno 3, tutores masivos, fast mana.",
     ];
@@ -1151,7 +1210,7 @@
     };
   }
 
-  async function analyzeDeck() {
+    async function analyzeDeck() {
     const decklist = document.getElementById("decklist-input").value.trim();
     const commander = document.getElementById("commander-input").value.trim();
 
@@ -1164,21 +1223,35 @@
     hideError();
     document.getElementById("results").style.display = "none";
 
-    let data;
+    let data = null;
+
+    // Intentar el backend con timeout manual (compatible con todos los browsers)
     try {
-      const resp = await fetch(`${API_URL}/analyze`, {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const resp = await fetch(API_URL + "/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decklist, commander }),
-        signal: AbortSignal.timeout(35000),
+        signal: controller.signal,
       });
-      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+      clearTimeout(timeoutId);
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
       data = await resp.json();
     } catch (e) {
-      // Fallback: análisis local
       console.warn("Backend no disponible, usando análisis local:", e.message);
-      data = localAnalyze(decklist, commander);
-      data._local = true;
+    }
+
+    // Fallback local si el backend falló o no respondió
+    if (!data) {
+      try {
+        data = localAnalyze(decklist, commander);
+        data._local = true;
+      } catch (err) {
+        setLoading(false);
+        showError("Error al analizar el deck: " + err.message);
+        return;
+      }
     }
 
     setLoading(false);
