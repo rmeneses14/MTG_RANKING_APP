@@ -2563,8 +2563,8 @@
       link.click();
       showToast("✓ Imagen descargada");
     } catch(e) {
-      console.error(e);
-      showToast("✗ Error al generar imagen");
+      console.error("Canvas error:", e);
+      showToast("✗ " + (e.message || String(e)).slice(0,60));
     } finally {
       btn.disabled = false;
       btn.textContent = "⬇ Descargar Imagen";
