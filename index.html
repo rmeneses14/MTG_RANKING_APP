@@ -651,6 +651,141 @@
       margin-top: 8px;
     }
 
+    /* ─── EDHREC Synergy Panel ──────────────────────────────────────────── */
+    .edhrec-panel {
+      background: linear-gradient(135deg, #0e1a1f 0%, #0a1520 100%);
+      border: 1px solid #1a3a4a;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .edhrec-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .edhrec-logo {
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: #3a9fd8;
+      text-transform: uppercase;
+      border: 1px solid #1a4a6a;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+    .edhrec-score-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .edhrec-score {
+      font-family: 'Cinzel', serif;
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .edhrec-score.high   { color: #4fc87a; text-shadow: 0 0 20px rgba(79,200,122,0.4); }
+    .edhrec-score.mid    { color: #c8a84a; text-shadow: 0 0 20px rgba(200,168,74,0.4); }
+    .edhrec-score.low    { color: #e05555; text-shadow: 0 0 20px rgba(224,85,85,0.3); }
+    .edhrec-score-suffix { font-size: 16px; color: var(--text-dim); }
+    .edhrec-meta {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.8;
+    }
+    .edhrec-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 12px 0;
+    }
+    .edhrec-tag {
+      font-size: 11px;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(58,159,216,0.12);
+      border: 1px solid rgba(58,159,216,0.3);
+      color: #3a9fd8;
+    }
+    .edhrec-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    @media (max-width: 640px) { .edhrec-cols { grid-template-columns: 1fr; } }
+    .edhrec-col-title {
+      font-size: 11px;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .edhrec-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 13px;
+    }
+    .edhrec-card-row:last-child { border-bottom: none; }
+    .edhrec-card-name { color: var(--text); }
+    .edhrec-synergy-badge {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .syn-high { background: rgba(79,200,122,0.15); color: #4fc87a; border: 1px solid rgba(79,200,122,0.3); }
+    .syn-mid  { background: rgba(200,168,74,0.15);  color: #c8a84a; border: 1px solid rgba(200,168,74,0.3); }
+    .syn-low  { background: rgba(255,255,255,0.06); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.1); }
+    .edhrec-coverage {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 14px 0 6px;
+    }
+    .edhrec-coverage-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .edhrec-coverage-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1a6a9a, #3a9fd8);
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+    .edhrec-coverage-label {
+      font-size: 12px;
+      color: #3a9fd8;
+      white-space: nowrap;
+    }
+    .edhrec-loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+    .edhrec-error {
+      color: var(--text-dim);
+      font-size: 13px;
+      padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
     .combo-chip {
       background: rgba(184,50,50,0.1);
       border: 1px solid var(--border-red);
@@ -772,6 +907,9 @@
 
     <!-- Market Value -->
     <div class="animate-in delay-5" id="market-display"></div>
+
+    <!-- EDHREC Synergy -->
+    <div id="edhrec-display" class="animate-in delay-5"></div>
 
     <!-- Reasons -->
     <div id="reasons-display"></div>
@@ -1282,6 +1420,7 @@
     setLoading(true);
     hideError();
     document.getElementById("results").style.display = "none";
+    document.getElementById("edhrec-display").innerHTML = "";
 
     // ── PASO 1: Análisis local SIEMPRE (scores correctos, instantáneo) ──────
     let data;
@@ -1293,33 +1432,172 @@
       return;
     }
 
-    // ── PASO 2: Intentar backend SOLO para precios de mercado ────────────────
+    // ── PASO 2: Mostrar resultados base inmediatamente ───────────────────────
+    setLoading(false);
+    renderResults(data);
+
+    // ── PASO 3: Enriquecer con backend (precios + EDHREC) en background ──────
+    enrichWithBackend(decklist, commander, data);
+  }
+
+  async function enrichWithBackend(decklist, commander, localData) {
+    // Mostrar placeholder EDHREC mientras carga
+    const edhrecDiv = document.getElementById("edhrec-display");
+    if (commander) {
+      edhrecDiv.innerHTML = `
+        <div class="edhrec-panel">
+          <div class="edhrec-loading">
+            <span style="color:#3a9fd8;font-family:'Cinzel',serif;letter-spacing:0.1em;font-size:11px;">⬡ EDHREC</span>
+            <div style="margin-top:8px;color:var(--text-dim)">Consultando sinergia para <strong style="color:var(--text)">${escHtml(commander)}</strong>...</div>
+          </div>
+        </div>
+      `;
+    }
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000);
-      const resp = await fetch(API_URL + "/analyze", {
+      const timeoutId = setTimeout(() => controller.abort(), 35000);
+
+      const resp = await fetch(API_URL + "/analyze/edhrec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decklist, commander }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+
       if (resp.ok) {
         const backendData = await resp.json();
-        // Usar SOLO los precios del backend, mantener todos los scores locales
+
+        // Actualizar precios
         if (backendData.total_market_value_usd != null) {
-          data.total_market_value_usd = backendData.total_market_value_usd;
-          data.top_expensive_cards    = backendData.top_expensive_cards || [];
-          data.card_prices            = backendData.card_prices || {};
+          localData.total_market_value_usd = backendData.total_market_value_usd;
+          localData.top_expensive_cards    = backendData.top_expensive_cards || [];
+          renderMarket(localData);
         }
+
+        // Renderizar sección EDHREC
+        if (backendData.edhrec) {
+          renderEdhrec(backendData.edhrec, commander);
+        } else if (commander) {
+          edhrecDiv.innerHTML = `<div class="edhrec-panel"><div class="edhrec-error">EDHREC no disponible para este comandante.</div></div>`;
+        }
+      } else {
+        if (commander) edhrecDiv.innerHTML = "";
       }
     } catch (e) {
-      // Backend no disponible — scores ya están calculados, solo sin precios
-      console.info("Backend no disponible para precios:", e.message);
+      console.info("Backend no disponible:", e.message);
+      if (commander) edhrecDiv.innerHTML = "";
+    }
+  }
+
+  function synBadge(s) {
+    if (s >= 0.20) return `<span class="edhrec-synergy-badge syn-high">+${Math.round(s*100)}%</span>`;
+    if (s >= 0.08) return `<span class="edhrec-synergy-badge syn-mid">+${Math.round(s*100)}%</span>`;
+    return `<span class="edhrec-synergy-badge syn-low">+${Math.round(s*100)}%</span>`;
+  }
+
+  function renderEdhrec(ed, commander) {
+    const edhrecDiv = document.getElementById("edhrec-display");
+
+    if (!ed || ed.error || ed.score === null) {
+      edhrecDiv.innerHTML = `
+        <div class="edhrec-panel">
+          <div class="edhrec-error">
+            <span style="color:#3a9fd8;font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.1em;">⬡ EDHREC</span><br>
+            ${ed?.error || "No se encontraron datos para este comandante en EDHREC."}
+            <div style="margin-top:8px;font-size:11px;">Asegurate de que el nombre del comandante esté escrito correctamente.</div>
+          </div>
+        </div>
+      `;
+      return;
     }
 
-    setLoading(false);
-    renderResults(data);
+    const scoreClass = ed.score >= 65 ? "high" : ed.score >= 40 ? "mid" : "low";
+    const scoreLabel = ed.score >= 65 ? "Alta sinergia con el comandante"
+                     : ed.score >= 40 ? "Sinergia moderada con el comandante"
+                     : "Baja alineación con el arquetipo del comandante";
+
+    const tagsHtml = (ed.tags || []).map(t =>
+      `<span class="edhrec-tag">${escHtml(t)}</span>`
+    ).join("");
+
+    const topInDeck = (ed.top_synergy_in_deck || []).slice(0, 6).map(c => `
+      <div class="edhrec-card-row">
+        <span class="edhrec-card-name">${escHtml(c.name)}</span>
+        ${synBadge(c.synergy)}
+      </div>`).join("");
+
+    const recommendations = (ed.recommendations || []).slice(0, 6).map(c => `
+      <div class="edhrec-card-row">
+        <span class="edhrec-card-name" style="color:var(--text-dim)">${escHtml(c.name)}</span>
+        ${synBadge(c.synergy)}
+      </div>`).join("");
+
+    const numDecks = ed.num_decks ? `${ed.num_decks.toLocaleString()} decks registrados` : "";
+
+    edhrecDiv.innerHTML = `
+      <div class="edhrec-panel animate-in">
+        <div class="edhrec-header">
+          <span class="edhrec-logo">⬡ EDHREC Synergy</span>
+          <div class="edhrec-score-wrap">
+            <span class="edhrec-score ${scoreClass}">${ed.score}</span>
+            <span class="edhrec-score-suffix">/100</span>
+          </div>
+          <div class="edhrec-meta">
+            <div style="color:var(--text-bright);font-weight:600;">${scoreLabel}</div>
+            <div>${ed.in_pool} / ${ed.total_non_land} cartas coinciden con el pool del comandante</div>
+            ${numDecks ? `<div style="color:var(--text-dim)">${numDecks}</div>` : ""}
+          </div>
+        </div>
+
+        ${tagsHtml ? `<div class="edhrec-tags">${tagsHtml}</div>` : ""}
+
+        <div class="edhrec-coverage">
+          <span style="font-size:11px;color:var(--text-dim);font-family:'Cinzel',serif;letter-spacing:0.08em;">COBERTURA</span>
+          <div class="edhrec-coverage-bar">
+            <div class="edhrec-coverage-fill" style="width:${ed.coverage_pct}%"></div>
+          </div>
+          <span class="edhrec-coverage-label">${ed.coverage_pct}%</span>
+        </div>
+
+        <div class="edhrec-cols">
+          <div>
+            <div class="edhrec-col-title">⚡ Tus cartas más sinérgicas</div>
+            ${topInDeck || '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">No se encontraron cartas en el pool</div>'}
+          </div>
+          <div>
+            <div class="edhrec-col-title">💡 Recomendaciones EDHREC</div>
+            ${recommendations || '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">Sin recomendaciones disponibles</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderMarket(d) {
+    const market = document.getElementById("market-display");
+    if (d.total_market_value_usd !== null && d.total_market_value_usd > 0) {
+      const topCards = d.top_expensive_cards || [];
+      market.innerHTML = `
+        <div class="market-panel">
+          <div class="section-title">Valor de Mercado</div>
+          <div class="market-total">
+            <span class="market-label">Valor estimado:</span>
+            <span class="market-value">$${d.total_market_value_usd.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+            <span style="font-size:13px;color:var(--metal-dim);">USD</span>
+          </div>
+          ${topCards.length > 0 ? `
+            <table class="cards-table">
+              <thead><tr><th>#</th><th>Carta</th><th>Valor</th></tr></thead>
+              <tbody>
+                ${topCards.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="card-name">${escHtml(c.name)}</td><td class="card-val">$${c.value.toFixed(2)}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          ` : ""}
+        </div>
+      `;
+    }
   }
 
   function renderResults(d) {
