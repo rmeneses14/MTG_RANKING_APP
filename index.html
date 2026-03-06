@@ -2,11 +2,46 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>MTG Deck Analyzer — Toph's Forge</title>
+
+  <!-- ═══ PWA META TAGS ═══════════════════════════════════════════ -->
+
+  <!-- Manifest (obligatorio para Android/Chrome) -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Android -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#6dbf5e" />
+
+  <!-- iOS / Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Toph's Forge" />
+
+  <!-- iOS íconos (iOS ignora el manifest para íconos) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180x180.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png" />
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120x120.png" />
+
+  <!-- Favicon estándar -->
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png" />
+
+  <!-- Windows -->
+  <meta name="msapplication-TileColor" content="#0d0f0c" />
+  <meta name="msapplication-TileImage" content="icons/icon-144x144.png" />
+
+  <!-- ════════════════════════════════════════════════════════════ -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
+      /* Safe areas — respeta notch, Dynamic Island y home bar */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
+
       --green:       #4a8c3f;
       --green-bright:#6dbf5e;
       --green-glow:  #52c447;
@@ -41,6 +76,10 @@
       line-height: 1.6;
       min-height: 100vh;
       overflow-x: hidden;
+      padding-top:    var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      padding-left:   var(--safe-left);
+      padding-right:  var(--safe-right);
     }
 
     /* ─── Runic background texture ─────────────────────────────── */
@@ -2586,7 +2625,63 @@
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 2800);
   }
+  // ─── PWA: Service Worker ─────────────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then(reg => console.log('[PWA] SW registrado:', reg.scope))
+        .catch(err => console.warn('[PWA] SW falló:', err));
+    });
+  }
+
+  // ─── PWA: Install Prompt (Android/Chrome) ────────────────────────────────────
+  let _installPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _installPrompt = e;
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.hidden = false;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.hidden = true;
+    _installPrompt = null;
+  });
+
+  async function pwaInstall() {
+    if (!_installPrompt) return;
+    const { outcome } = await _installPrompt.prompt();
+    console.log('[PWA] Install outcome:', outcome);
+    _installPrompt = null;
+  }
 </script>
+<!-- PWA Install Button — se muestra solo en Android/Chrome cuando aún no está instalada -->
+<button id="pwa-install-btn"
+        hidden
+        onclick="pwaInstall()"
+        style="
+          position: fixed;
+          bottom: calc(20px + var(--safe-bottom));
+          right: 20px;
+          z-index: 9999;
+          background: var(--green-bright);
+          color: var(--bg);
+          border: none;
+          border-radius: 50px;
+          padding: 12px 20px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        ">
+  ⬇ Instalar app
+</button>
 
 </body>
 </html>
