@@ -2,8 +2,8 @@
   "name": "MTG Deck Analyzer — Toph's Forge",
   "short_name": "Toph's Forge",
   "description": "Analizador de decks de Commander con IA — brackets, tier, scores y más",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/MTG_RANKING_APP/",
+  "scope": "/MTG_RANKING_APP/",
   "display": "standalone",
   "background_color": "#0d0f0c",
   "theme_color": "#6dbf5e",
@@ -12,24 +12,16 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "icons/icon-192x192.png",
+      "src": "icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-512x512.png",
+      "src": "icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "screenshots/mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
     }
   ]
 }

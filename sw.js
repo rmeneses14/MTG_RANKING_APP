@@ -1,18 +1,15 @@
-// ─── Antares SW — generado para MTG Deck Analyzer - Toph's Forge ────────────
-const CACHE_NAME = 'tophs-forge-v1';
+// ─── Antares SW — Toph's Forge ───────────────────────────────────────────────
+const CACHE_NAME = 'tophs-forge-v2';
 
-// Archivos a cachear para modo offline
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  // Fuentes de Google Fonts
+  '/MTG_RANKING_APP/',
+  '/MTG_RANKING_APP/index.html',
+  '/MTG_RANKING_APP/manifest.json',
+  '/MTG_RANKING_APP/icon-192x192.png',
+  '/MTG_RANKING_APP/icon-512x512.png',
   'https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap',
 ];
 
-// Instalar: pre-cachear assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -21,24 +18,20 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activar: limpiar caches viejos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );
 });
 
-// Fetch: cache-first para assets estáticos, network-first para API
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Llamadas a la API de Anthropic / backend → siempre red (no cachear)
+  // API calls → siempre red
   if (
     url.pathname.startsWith('/api') ||
     url.hostname.includes('onrender.com') ||
@@ -49,11 +42,10 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Assets estáticos → cache primero, fallback a red
+  // Assets estáticos → cache first
   event.respondWith(
     caches.match(event.request).then(cached => {
       return cached || fetch(event.request).then(response => {
-        // Cachear respuesta nueva
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         return response;
