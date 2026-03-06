@@ -2614,7 +2614,7 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
-        .register('/MTG_RANKING_APP/sw.js')
+        .register('./sw.js')
         .then(reg => console.log('[PWA] SW OK:', reg.scope))
         .catch(err => console.warn('[PWA] SW falló:', err));
     });
