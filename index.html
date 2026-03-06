@@ -2615,77 +2615,110 @@
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')
-        .then(reg => console.log('[PWA] SW registrado:', reg.scope))
+        .then(reg => console.log('[PWA] SW OK:', reg.scope))
         .catch(err => console.warn('[PWA] SW falló:', err));
     });
   }
 
-  // ─── PWA: Install Prompt ────────────────────────────────────────────────────
+  // ─── PWA: Install ────────────────────────────────────────────────────────────
   window._pwaPrompt = null;
 
-  // Capturar lo antes posible — puede llegar antes del DOMContentLoaded
+  const _isIOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const _isAndroid = /android/i.test(navigator.userAgent);
+  const _isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                     || window.navigator.standalone === true;
+
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     window._pwaPrompt = e;
-    _pwaShowBtn('Instalar app');
+    console.log('[PWA] prompt capturado');
   });
 
   window.addEventListener('appinstalled', () => {
     window._pwaPrompt = null;
-    _pwaHideBtn();
+    document.getElementById('pwa-install-btn').hidden = true;
     showToast('✓ App instalada');
   });
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (window._pwaPrompt) _pwaShowBtn('Instalar app');
+    // No mostrar si ya está corriendo como app instalada
+    if (_isStandalone) return;
+    document.getElementById('pwa-install-btn').hidden = false;
   });
 
-  function _pwaShowBtn(label) {
-    const btn = document.getElementById('pwa-install-btn');
-    if (!btn) return;
-    btn.textContent = '⬇ ' + label;
-    btn.hidden = false;
-  }
-
-  function _pwaHideBtn() {
-    const btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.hidden = true;
-  }
-
   async function pwaInstall() {
-    const btn = document.getElementById('pwa-install-btn');
-
-    // Diagnóstico visible en pantalla
-    if (!window._pwaPrompt) {
-      showToast('⚠ Sin prompt — abrí DevTools para ver detalles');
-      console.warn('[PWA] _pwaPrompt es null. El evento beforeinstallprompt no se disparó.');
-      console.warn('[PWA] Posibles causas: app ya instalada, manifest/SW con error, o Chrome no considera la app elegible aún.');
+    // Caso 1: Chrome Android con prompt nativo disponible
+    if (window._pwaPrompt) {
+      try {
+        const result = await window._pwaPrompt.prompt();
+        if (result.outcome === 'accepted') {
+          window._pwaPrompt = null;
+          document.getElementById('pwa-install-btn').hidden = true;
+        }
+      } catch(err) {
+        console.error('[PWA]', err);
+        showToast('✗ ' + err.message);
+      }
       return;
     }
 
-    try {
-      btn.textContent = '⏳ Instalando…';
-      btn.disabled = true;
-      const result = await window._pwaPrompt.prompt();
-      console.log('[PWA] outcome:', result.outcome);
-      if (result.outcome === 'accepted') {
-        window._pwaPrompt = null;
-        _pwaHideBtn();
-      } else {
-        btn.textContent = '⬇ Instalar app';
-        btn.disabled = false;
-        showToast('Instalación cancelada');
-      }
-    } catch(err) {
-      console.error('[PWA] Error en prompt():', err);
-      showToast('✗ Error: ' + err.message);
-      btn.textContent = '⬇ Instalar app';
-      btn.disabled = false;
+    // Caso 2: iOS Safari — instrucciones manuales
+    if (_isIOS) {
+      _pwaShowModal(
+        '📲 Instalar en iPhone/iPad',
+        'Tocá el botón <strong>Compartir</strong> (□↑) en Safari y luego<br><strong>"Añadir a pantalla de inicio"</strong>'
+      );
+      return;
     }
+
+    // Caso 3: Android sin prompt (ya instalada, período de espera, etc.)
+    if (_isAndroid) {
+      _pwaShowModal(
+        '📲 Instalar en Android',
+        'Tocá el menú <strong>⋮</strong> de Chrome y seleccioná<br><strong>"Instalar app"</strong> o <strong>"Añadir a pantalla de inicio"</strong>'
+      );
+      return;
+    }
+
+    // Caso 4: Desktop
+    _pwaShowModal(
+      '💻 Instalar en escritorio',
+      'En Chrome: menú <strong>⋮</strong> → <strong>"Instalar MTG Deck Analyzer"</strong><br>O buscá el ícono ⊕ en la barra de direcciones'
+    );
+  }
+
+  function _pwaShowModal(title, body) {
+    const existing = document.getElementById('pwa-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'pwa-modal';
+    modal.innerHTML = `
+      <div style="
+        position:fixed; inset:0; z-index:10000;
+        background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);
+        display:flex; align-items:center; justify-content:center;
+        padding:24px;
+      " onclick="this.parentElement.remove()">
+        <div style="
+          background:#161914; border:1px solid #3a6e34;
+          border-radius:8px; padding:28px 24px; max-width:340px; width:100%;
+          text-align:center; position:relative;
+        " onclick="event.stopPropagation()">
+          <div style="font-family:'Cinzel Decorative',cursive; font-size:15px; color:#6dbf5e; margin-bottom:16px;">${title}</div>
+          <div style="font-family:'Rajdhani',sans-serif; font-size:16px; color:#d4e8cc; line-height:1.7;">${body}</div>
+          <button onclick="document.getElementById('pwa-modal').remove()" style="
+            margin-top:20px; background:transparent; border:1px solid #3a6e34;
+            border-radius:4px; color:#7a9870; padding:8px 20px;
+            font-family:'Rajdhani',sans-serif; font-size:14px; cursor:pointer;
+          ">Cerrar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
   }
 </script>
 
-<!-- PWA Install Button -->
+<!-- PWA Install Button — visible en mobile, se oculta si ya está instalada -->
 <button id="pwa-install-btn"
         hidden
         onclick="pwaInstall()"
